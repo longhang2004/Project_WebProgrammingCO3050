@@ -1,4 +1,4 @@
-import Header from "../../components/Header";
+import FixedBanner from "../../components/FixedBanner";
 import ProductList from "../../components/ProductList";
 import BannerSlider from "../../components/SliderBanner";
 
@@ -6,7 +6,7 @@ function ProductsHome() {
   return (<>
         <BannerSlider />
         <ProductList />
-        <Header />
+        <FixedBanner />
     </>
   );
 }

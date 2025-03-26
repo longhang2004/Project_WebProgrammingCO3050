@@ -1,4 +1,4 @@
-function ProductList() {
+function ProductList({productsList}) {
     const products = Array(20).fill({
       name: "Sản phẩm",
       price: "1.000.000đ",
@@ -9,7 +9,7 @@ function ProductList() {
       <div className="px-[100px] my-8">
         <h2 className="text-2xl font-bold mb-4">Sản phẩm hot</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {products.map((product, index) => (
+          {productsList.map((product, index) => (
             <div key={index} className="border rounded-md overflow-hidden shadow-md">
               <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
               <div className="p-4">
