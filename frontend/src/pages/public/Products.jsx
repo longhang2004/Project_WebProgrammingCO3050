@@ -8,12 +8,12 @@ import Navbar from "../../components/Navbar";
 function Products() {
     // const products = useSelector((state) => state.products);
     return (
-        <>
+        <div className="w-full">
             <Header />
             <Navbar />
             <Outlet />
             <Footer />
-        </>
+        </div>
     );
 }
 

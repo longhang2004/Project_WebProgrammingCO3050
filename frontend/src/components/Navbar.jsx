@@ -1,20 +1,45 @@
+import { useState } from 'react';
+
 function Navbar() {
-    return (
-      <nav className="bg-primary text-white py-2 px-[100px]">
-        <ul className="flex gap-6 items-center">
-          <li><a href="#" className="hover:underline">Điện thoại</a></li>
-          <li><a href="#" className="hover:underline">Laptop</a></li>
-          <li><a href="#" className="hover:underline">Tablet</a></li>
-          <li className="relative group">
-            <a href="#" className="hover:underline">Khác</a>
-            <ul className="absolute hidden group-hover:block bg-white text-black shadow-md rounded-md mt-1 p-2">
-              <li><a href="#" className="block px-4 py-2 hover:bg-gray-100">Phụ kiện</a></li>
-              <li><a href="#" className="block px-4 py-2 hover:bg-gray-100">Khuyến mãi</a></li>
-            </ul>
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  return (
+    <nav className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md py-3 px-4 md:px-[100px]">
+      <div className="container mx-auto flex justify-between items-center">
+        <div className="font-bold text-xl">Brand Logo</div>
+        
+        <ul className="hidden md:flex gap-8 items-center">
+          <li><a href="#" className="hover:text-blue-200 transition duration-200">Điện thoại</a></li>
+          <li><a href="#" className="hover:text-blue-200 transition duration-200">Laptop</a></li>
+          <li><a href="#" className="hover:text-blue-200 transition duration-200">Tablet</a></li>
+          <li className="relative">
+            <button 
+              className="flex items-center hover:text-blue-200 transition duration-200 focus:outline-none"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              Khác
+              <svg className={`ml-1 w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            
+            {isDropdownOpen && (
+              <ul className="absolute right-0 bg-white text-gray-800 shadow-lg rounded-md mt-2 py-2 w-48 z-10 animate-fadeIn">
+                <li><a href="#" className="block px-4 py-2 hover:bg-blue-50 transition duration-200">Phụ kiện</a></li>
+                <li><a href="#" className="block px-4 py-2 hover:bg-blue-50 transition duration-200">Khuyến mãi</a></li>
+              </ul>
+            )}
           </li>
         </ul>
-      </nav>
-    );
-  }
-  
-  export default Navbar;
+        
+        <button className="md:hidden text-white">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+export default Navbar;
