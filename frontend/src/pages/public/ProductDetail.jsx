@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar'; // Giả định có sẵn
+import { Link } from 'react-router-dom';
 
 function ProductDetail() {
   // const { id } = useParams();
@@ -30,7 +31,7 @@ function ProductDetail() {
     promotion: "Giảm 10% khi mua online",
     colors: ['Black', 'White'],
     storage: ['64GB', '128GB'],
-    comments: []
+    comments: [{user: 'Long', content: 'Sản phẩm rất tốt!'}, {user: 'Huy', content: 'Mua xong rất hài lòng!'}],
   });
   const [loading, setLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState('Black');
@@ -65,10 +66,11 @@ function ProductDetail() {
 
   return (
     <div className="min-h-screen flex flex-col text-black">
-      <div className="md:px-[100px] my-8 flex-1">
+      <div className="md:px-[100px] my-8 flex-1 px-[20px]">
         {/* Tab đường dẫn */}
         <div className="text-white mb-4">
-          <span>{product.category}</span> &gt; <span>{product.name}</span>
+          <Link to={`/${product.category}`} className="hover:text-blue-200 transition duration-200"><span>{product.category} </span></Link>
+           &gt; <span>{product.name}</span>
         </div>
         {/* Tên và đánh giá */}
         <div className="flex items-center mb-4">
@@ -79,11 +81,11 @@ function ProductDetail() {
           </div>
         </div>
         {/* Grid 2 cột */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Cột trái */}
-          <div className='bg-white p-4 border rounded'>
+          <div className='bg-white p-4 border rounded-2xl'>
             <div className="mb-4">
-              <img src={product.images[0]} alt={product.name} className="w-full h-96 object-cover" />
+              <img src={product.images[0]} alt={product.name} className="w-full h-96 object-contain" />
             </div>
             <div>
               <h2 className="text-xl font-semibold mb-2">Thông số kỹ thuật</h2>
@@ -100,8 +102,8 @@ function ProductDetail() {
             </div>
           </div>
           {/* Cột phải */}
-          <div className='bg-white p-4 border rounded'>
-            <h2 className="text-3xl font-bold text-red-500 mb-2">{currentPrice}</h2>
+          <div className='bg-white p-4 border rounded-2xl'>
+            <h2 className="text-3xl font-bold text-red-500 mb-2">{currentPrice} Đ</h2>
             <p className="mb-4">{product.promotion}</p>
             <div className="mb-4">
               <label className="block mb-2">Chọn màu:</label>
@@ -138,10 +140,10 @@ function ProductDetail() {
           </div>
         </div>
         {/* Phần bình luận */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Bình luận của khách hàng</h2>
+        <div className="mt-8 rounded-2xl bg-white px-[20px] py-4">
+          <h2 className="text-xl font-semibold mb-4 ">Bình luận của khách hàng</h2>
           {product.comments.map((comment, index) => (
-            <div key={index} className="mb-4 p-4 border rounded">
+            <div key={index} className="mb-4 p-4 border rounded text-white bg-gray-800">
               <p className="font-bold">{comment.user}</p>
               <p>{comment.content}</p>
             </div>
