@@ -46,7 +46,7 @@ CREATE TABLE Smartphones (
     screen_description VARCHAR(100) NOT NULL,
     RAM_ROM VARCHAR(100) NOT NULL,
     sim_connectivity VARCHAR(100) NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE  -- Ensures that if a product is deleted, its smartphone record is also deleted
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE Laptops (
@@ -58,7 +58,7 @@ CREATE TABLE Laptops (
     screen_description VARCHAR(100) NOT NULL,
     battery VARCHAR(100) NOT NULL,
     ports VARCHAR(100) NOT NULL,
-    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE  -- Ensures that if a product is deleted, its laptop record is also deleted
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE Orders (
