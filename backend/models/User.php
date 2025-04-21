@@ -1,44 +1,51 @@
 <?php
-require_once '../utils/Database.php';
+require_once __DIR__ . '/../utils/Database.php';
 
 class User {
     private $db;
     private $conn;
 
     public function __construct() {
-        $this->db = new Database();
+        $this->db = Database::getInstance(); // Sử dụng Singleton
         $this->conn = $this->db->getConnection();
     }
 
     // Đăng ký người dùng mới (mặc định là customer)
     public function register($first_name, $last_name, $username, $password, $email, $phone_number, $address) {
-        // Mã hóa mật khẩu
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-        // Bắt đầu transaction
+    
         $this->conn->begin_transaction();
-
+    
         try {
-            // Thêm vào bảng Users
             $query = "INSERT INTO users (first_name, last_name, username, password, email, phone_number, address, imageurl) 
                       VALUES (?, ?, ?, ?, ?, ?, ?, 'https://example.com/default.jpg')";
             $stmt = $this->conn->prepare($query);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->conn->error);
+            }
             $stmt->bind_param("sssssss", $first_name, $last_name, $username, $hashed_password, $email, $phone_number, $address);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed: " . $stmt->error);
+            }
             $user_id = $this->conn->insert_id;
-
-            // Thêm vào bảng Customers (mặc định)
+    
             $membership_level = 'basic';
             $customer_query = "INSERT INTO customers (user_id, membership_level) VALUES (?, ?)";
             $customer_stmt = $this->conn->prepare($customer_query);
+            if (!$customer_stmt) {
+                throw new Exception("Prepare failed: " . $this->conn->error);
+            }
             $customer_stmt->bind_param("is", $user_id, $membership_level);
-            $customer_stmt->execute();
-
+            if (!$customer_stmt->execute()) {
+                throw new Exception("Execute failed: " . $customer_stmt->error);
+            }
+    
             $this->conn->commit();
             return $user_id;
-
+    
         } catch (Exception $e) {
             $this->conn->rollback();
+            error_log("Register error: " . $e->getMessage()); // Ghi log lỗi
             return false;
         }
     }

@@ -4,8 +4,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-require_once '../controllers/OrderController.php';
-require_once '../utils/Response.php';
+require_once __DIR__ . '/../utils/Response.php';
+require_once __DIR__ . '/../utils/Auth.php';
+require_once __DIR__ . '/../controllers/OrderController.php';
 
 $controller = new OrderController();
 $response = new Response();
@@ -18,6 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uriSegments = explode('/', trim($uri, '/'));
 
+if ($uriSegments[0] === 'backend' && $uriSegments[1] === 'api') {
+    array_shift($uriSegments); // Loại bỏ 'backend'
+    array_shift($uriSegments); // Loại bỏ 'api'
+}
+
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
         if (isset($uriSegments[2]) && is_numeric($uriSegments[2])) {
@@ -28,14 +34,17 @@ switch ($_SERVER['REQUEST_METHOD']) {
         break;
 
     case 'POST':
+        Auth::protect(); // Người dùng đã đăng nhập
         $controller->createOrder();
         break;
 
     case 'PUT':
         if (isset($uriSegments[2]) && is_numeric($uriSegments[2])) {
             if (isset($uriSegments[3]) && $uriSegments[3] === 'status') {
+                Auth::protect(true); // Chỉ admin được cập nhật trạng thái
                 $controller->updateOrderStatus($uriSegments[2]);
             } elseif (isset($uriSegments[3]) && $uriSegments[3] === 'payment') {
+                Auth::protect(true); // Chỉ admin được cập nhật thanh toán
                 $controller->updatePaymentStatus($uriSegments[2]);
             } else {
                 echo $response->error("Invalid endpoint", 400);
@@ -47,6 +56,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
 
     case 'DELETE':
         if (isset($uriSegments[2]) && is_numeric($uriSegments[2])) {
+            Auth::protect(true); // Chỉ admin được xóa
             $controller->deleteOrder($uriSegments[2]);
         } else {
             echo $response->error("Order ID is required", 400);

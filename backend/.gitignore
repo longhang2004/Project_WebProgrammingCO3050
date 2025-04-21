@@ -1,2 +1,3 @@
 .env
 /config/db_config.php
+/config/jwt_config.php

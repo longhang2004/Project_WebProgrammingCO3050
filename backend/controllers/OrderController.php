@@ -1,6 +1,7 @@
 <?php
-require_once '../models/Order.php';
-require_once '../utils/Response.php';
+require_once __DIR__ . '/../models/Order.php';
+require_once __DIR__ . '/../utils/Response.php';
+require_once __DIR__ . '/../utils/Auth.php';
 
 class OrderController {
     private $order;
@@ -33,10 +34,17 @@ class OrderController {
     }
 
     public function createOrder() {
+        $auth = Auth::protect(); // Kiểm tra người dùng đã đăng nhập
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!isset($data['user_id']) || !isset($data['shipping_address']) || !isset($data['payment_method']) || !isset($data['order_items'])) {
             echo $this->response->error("Missing required fields", 400);
+            return;
+        }
+
+        // Đảm bảo user_id từ token khớp với request
+        if ($auth['sub'] != $data['user_id'] && !$auth['is_admin']) {
+            echo $this->response->unauthorized("You can only create orders for yourself");
             return;
         }
 
@@ -55,6 +63,7 @@ class OrderController {
     }
 
     public function updateOrderStatus($id) {
+        $auth = Auth::protect(true); // Chỉ admin
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!isset($data['status'])) {
@@ -72,6 +81,7 @@ class OrderController {
     }
 
     public function updatePaymentStatus($id) {
+        $auth = Auth::protect(true); // Chỉ admin
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!isset($data['payment_status'])) {
@@ -89,6 +99,7 @@ class OrderController {
     }
 
     public function deleteOrder($id) {
+        $auth = Auth::protect(true); // Chỉ admin
         if ($this->order->deleteOrder($id)) {
             echo $this->response->success(['message' => 'Order deleted successfully']);
         } else {

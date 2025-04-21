@@ -5,6 +5,9 @@ USE webproject;
 -- 1. Select all users
 SELECT * FROM Users;
 
+SELECT * FROM Customers;
+SELECT * FROM Admins;
+
 -- 2. Select all customers with their user information
 SELECT u.*, c.membership_level
 FROM Customers c

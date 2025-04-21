@@ -1,12 +1,12 @@
 <?php
-require_once '../utils/Database.php';
+require_once __DIR__ . '/../utils/Database.php';
 
 class Product {
     private $db;
     private $conn;
 
     public function __construct() {
-        $this->db = new Database();
+        $this->db = Database::getInstance(); // Sử dụng Singleton
         $this->conn = $this->db->getConnection();
     }
 
@@ -32,7 +32,6 @@ class Product {
             $products[] = $this->formatProduct($row);
         }
 
-        // Lấy tổng số bản ghi để tính tổng số trang
         $countQuery = "SELECT COUNT(*) as total FROM products";
         $countResult = $this->conn->query($countQuery);
         $total = $countResult->fetch_assoc()['total'];

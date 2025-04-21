@@ -10,6 +10,7 @@ CREATE TABLE Users (
     phone_number VARCHAR(15) NOT NULL,
     address VARCHAR(255) NOT NULL,
     imageurl VARCHAR(255) DEFAULT 'https://example.com/default.jpg',
+    status ENUM('active', 'disabled') DEFAULT 'active', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

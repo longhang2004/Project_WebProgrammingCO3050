@@ -1,6 +1,7 @@
 <?php
-require_once '../models/Product.php';
-require_once '../utils/Response.php';
+require_once __DIR__ . '/../models/Product.php';
+require_once __DIR__ . '/../utils/Response.php';
+require_once __DIR__ . '/../utils/Auth.php';
 
 class ProductController {
     private $product;
@@ -57,6 +58,7 @@ class ProductController {
     }
 
     public function createProduct() {
+        $auth = Auth::protect(true); // Chỉ admin
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!isset($data['name']) || !isset($data['description']) || !isset($data['price']) || 
@@ -78,7 +80,6 @@ class ProductController {
         $product_id = $this->product->createProduct($name, $description, $price, $stock, $rated_stars, $warranty_period, $manufacturer, $warranty_policy, $imageurl);
 
         if ($product_id) {
-            // Thêm chi tiết nếu là smartphone
             if (isset($data['details']) && $data['details']['type'] === 'smartphone') {
                 $this->product->createSmartphone(
                     $product_id,
@@ -91,7 +92,6 @@ class ProductController {
                 );
             }
 
-            // Thêm chi tiết nếu là laptop
             if (isset($data['details']) && $data['details']['type'] === 'laptop') {
                 $this->product->createLaptop(
                     $product_id,
@@ -112,6 +112,7 @@ class ProductController {
     }
 
     public function updateProduct($id) {
+        $auth = Auth::protect(true); // Chỉ admin
         $data = json_decode(file_get_contents("php://input"), true);
 
         if (!isset($data['name']) || !isset($data['description']) || !isset($data['price']) || 
@@ -165,6 +166,7 @@ class ProductController {
     }
 
     public function deleteProduct($id) {
+        $auth = Auth::protect(true); // Chỉ admin
         if ($this->product->deleteProduct($id)) {
             echo $this->response->success(['message' => 'Product deleted successfully']);
         } else {

@@ -1,6 +1,7 @@
 <?php
-require_once '../models/User.php';
-require_once '../utils/Response.php';
+require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../utils/Response.php';
+require_once __DIR__ . '/../utils/Auth.php';
 
 class UserController {
     private $user;
@@ -51,13 +52,19 @@ class UserController {
         $user = $this->user->login($username_or_email, $password);
 
         if ($user) {
-            echo $this->response->success(['user' => $user, 'message' => 'Login successful']);
+            $token = Auth::createToken($user['user_id'], $user['username'], $user['is_admin']);
+            echo $this->response->success([
+                'user' => $user,
+                'token' => $token,
+                'message' => 'Login successful'
+            ]);
         } else {
             echo $this->response->error("Invalid credentials", 401);
         }
     }
 
     public function getUserById($id) {
+        $auth = Auth::protect();
         $user = $this->user->getUserById($id);
         if ($user) {
             echo $this->response->success($user);

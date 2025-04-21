@@ -1,5 +1,8 @@
 USE webproject;
 
+-- INSERT INTO Admins (user_id)
+-- VALUES (6);
+
 -- Insert sample users
 INSERT INTO Users (first_name, last_name, username, password, email, phone_number, address, imageurl)
 VALUES 

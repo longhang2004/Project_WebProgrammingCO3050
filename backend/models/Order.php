@@ -1,12 +1,12 @@
 <?php
-require_once '../utils/Database.php';
+require_once __DIR__ . '/../utils/Database.php';
 
 class Order {
     private $db;
     private $conn;
 
     public function __construct() {
-        $this->db = new Database();
+        $this->db = Database::getInstance(); // Sử dụng Singleton
         $this->conn = $this->db->getConnection();
     }
 
