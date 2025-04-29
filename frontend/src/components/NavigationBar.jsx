@@ -138,6 +138,7 @@ function NavigationBar() {
                     </li>
                     <li><Link to="/about" className="hover:text-blue-200 transition duration-200">Giới thiệu</Link></li>
                     <li><Link to="/faq" className="hover:text-blue-200 transition duration-200">Hỏi đáp</Link></li>
+                    <li><Link to="/contact" className="hover:text-blue-200 transition duration-200">Liên hệ</Link></li>
                 </ul>
 
                 {/* Right Section: Search, User, Cart, Mobile Toggle */}
@@ -203,9 +204,8 @@ function NavigationBar() {
                         />
                     </div>
                     <Link to="/" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Trang chủ</Link>
-                    <Link to="/phone" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Điện thoại</Link>
-                    <Link to="/laptop" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Laptop</Link>
-                    <Link to="/tablet" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Tablet</Link>
+                    <li><Link to="/phone" className="hover:text-blue-200 transition duration-200">Điện thoại</Link></li>
+                    <li><Link to="/laptop" className="hover:text-blue-200 transition duration-200">Laptop</Link></li>
 
                     {/* Mobile Category Dropdown */}
                     <div ref={mobileDropdownRef}>
@@ -239,6 +239,7 @@ function NavigationBar() {
 
                     <Link to="/about" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Giới thiệu</Link>
                     <Link to="/faq" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Hỏi đáp</Link>
+                    <Link to="/contact" className="block py-2 rounded hover:bg-white/10 px-3 transition duration-200">Liên hệ</Link>
 
                     {/* Divider */}
                     {user && <hr className="border-white/20 my-3" />}

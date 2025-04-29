@@ -18,6 +18,7 @@ function Navbar() {
           <li><Link to="/laptop" className="hover:text-blue-200 transition duration-200">Laptop</Link></li>
           <li><Link to="/about" className="hover:text-blue-200 transition duration-200">Giới thiệu</Link></li> {/* Thêm Link Giới thiệu */}
           <li><Link to="/faq" className="hover:text-blue-200 transition duration-200">Hỏi đáp</Link></li>   {/* Thêm Link Hỏi đáp */}
+          <li><Link to="/contact" className="hover:text-blue-200 transition duration-200">Liên h</Link></li>   {/* Thêm Link Hỏi đáp */}
           <li><Link to="#" className="hover:text-blue-200 transition duration-200">Tablet</Link></li>
           {/* <li className="relative">
             <button 

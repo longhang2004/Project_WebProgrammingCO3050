@@ -5,6 +5,7 @@ import TopBar from './components/TopBar'; // Import mới
 // import MainHeader from './components/MainHeader'; // Import mới
 import NavigationBar from './components/NavigationBar'; // Import NavigationBar
 import Footer from './components/Footer';
+import ProductsByType from './pages/public/ProductsByType';
 import BlogList from './pages/public/BlogList';
 import BlogDetail from './pages/public/BlogDetail';
 import AboutPage from './pages/public/AboutPage'; // Import trang Giới thiệu
@@ -33,6 +34,8 @@ function App() {
             <Route path="/about" element={<AboutPage />} /> {/* Route cho trang Giới thiệu */}
             <Route path="/faq" element={<FAQPage />} /> {/* Route cho trang FAQ */}
             <Route path="/contact" element={<ContactPage />} /> {/* Trang Liên hệ - Đây là chỗ dùng component ContactPage */}
+            <Route path="/phone" element={<ProductsByType key="phone" />} /> {/* Sử dụng component ProductsByType */}
+            <Route path="/laptop" element={<ProductsByType key="laptop" />} /> {/* Sử dụng component ProductsByType */}
 
             {/* --- Các route khác của bạn --- */}
             {/* <Route path="/phone" element={<ProductsByType type="phone" />} />
