@@ -29,5 +29,11 @@ class Response {
     public function serverError($message = "Internal server error") {
         return $this->error($message, 500);
     }
+
+    public static function json($data) {
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
 }
 ?>

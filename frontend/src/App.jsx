@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import BlogList from './pages/public/BlogList';
+import PostList from './pages/public/PostList';
 import BlogDetail from './pages/public/BlogDetail';
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
       <Navbar />
       <Header />
       <Routes>
-        <Route path="/" element={<BlogList />} />
+        <Route path="/" element={<PostList />} /> 
         <Route path="/blog/:id" element={<BlogDetail />} />
       </Routes>
       <Footer />
