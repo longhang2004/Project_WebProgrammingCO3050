@@ -1,8 +1,9 @@
+//navbar.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 function Navbar() {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -15,6 +16,8 @@ function Navbar() {
         <ul className="hidden md:flex gap-8 items-center">
           <li><Link to="/phone" className="hover:text-blue-200 transition duration-200">Điện thoại</Link></li>
           <li><Link to="/laptop" className="hover:text-blue-200 transition duration-200">Laptop</Link></li>
+          <li><Link to="/about" className="hover:text-blue-200 transition duration-200">Giới thiệu</Link></li> {/* Thêm Link Giới thiệu */}
+          <li><Link to="/faq" className="hover:text-blue-200 transition duration-200">Hỏi đáp</Link></li>   {/* Thêm Link Hỏi đáp */}
           <li><Link to="#" className="hover:text-blue-200 transition duration-200">Tablet</Link></li>
           {/* <li className="relative">
             <button 

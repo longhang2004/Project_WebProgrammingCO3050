@@ -1,7 +1,7 @@
 <?php
-define('DB_HOST', 'your-azure-mysql-host');
-define('DB_USER', 'your-username');
-define('DB_PASS', 'your-password');
-define('DB_NAME', 'ecommerce_db');
-define('DB_PORT', 3306);
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'webproject');
+define('DB_PORT', 3307);
 ?>
