@@ -1,23 +1,22 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import Header from './components/Header';
-// import Navbar from './components/Navbar';
-import TopBar from './components/TopBar'; // Import mới
-// import MainHeader from './components/MainHeader'; // Import mới
-import NavigationBar from './components/NavigationBar'; // Import NavigationBar
+import TopBar from './components/TopBar';
+import NavigationBar from './components/NavigationBar';
 import Footer from './components/Footer';
 import ProductsByType from './pages/public/ProductsByType';
 import BlogList from './pages/public/BlogList';
 import BlogDetail from './pages/public/BlogDetail';
-import AboutPage from './pages/public/AboutPage'; // Import trang Giới thiệu
-import FAQPage from './pages/public/FAQPage'; // Import trang FAQ
-import ContactPage from './pages/public/ContactPage'; // Component Contact tôi vừa cung cấp
-
-
+import AboutPage from './pages/public/AboutPage';
+import FAQPage from './pages/public/FAQPage';
+import ContactPage from './pages/public/ContactPage'; 
+import RegisterPage from './pages/public/RegisterPage';
+import LoginPage from './pages/public/LoginPage';
+import UserProfile from './pages/user/UserProfile';
+import ProtectedRoute from './components/ProtectedRoute'
+import ProductDetail from './pages/public/ProductDetail';
+import UserCart from './pages/user/UserCart';
 
 function App() {
   return (
-    <Router>
-      {/* 1. Wrapper chính với các lớp flexbox */}
       <div className="flex flex-col min-h-screen">
         {/* <Navbar />
         <Header />
@@ -36,22 +35,20 @@ function App() {
             <Route path="/contact" element={<ContactPage />} /> {/* Trang Liên hệ - Đây là chỗ dùng component ContactPage */}
             <Route path="/phone" element={<ProductsByType key="phone" />} /> {/* Sử dụng component ProductsByType */}
             <Route path="/laptop" element={<ProductsByType key="laptop" />} /> {/* Sử dụng component ProductsByType */}
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/product/:productId" element={<ProductDetail />} />
 
-            {/* --- Các route khác của bạn --- */}
-            {/* <Route path="/phone" element={<ProductsByType type="phone" />} />
-            <Route path="/laptop" element={<ProductsByType type="laptop" />} /> */}
-            {/* <Route path="/product/:productId" element={<ProductDetail />} /> */}
-            {/* <Route path="/cart" element={<UserCart />} /> */}
-            {/* <Route path="/profile" element={<UserProfile />} /> */}
-            {/* <Route path="*" element={<NotFoundPage />} /> */}
-            {/* --- Kết thúc các route khác --- */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/cart" element={<UserCart />} /> {/* Route giỏ hàng */}
+              </Route>
 
           </Routes>
         </main>
 
         <Footer />
       </div>
-    </Router>
   );
 }
 
