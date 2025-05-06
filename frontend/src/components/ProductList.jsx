@@ -1,69 +1,94 @@
-// src/components/ProductList.jsx
-import React from "react";
-import { Link } from "react-router-dom"; // Đảm bảo đã import Link
+// src/components/ProductList.jsx (Ví dụ cải thiện)
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { FaStar, FaRegStar, FaCartPlus } from 'react-icons/fa';
+import { motion } from 'framer-motion'; // Import motion
 
-// Hàm định dạng tiền tệ (ví dụ)
-const formatCurrency = (amount) => {
-  if (typeof amount !== 'number') return amount; // Trả về nguyên gốc nếu không phải số
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-};
+// Giả sử bạn có ProductCard component
+function ProductCard({ product }) {
+    // Hàm render sao (ví dụ)
+    const renderStars = (rating) => {
+        const stars = [];
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 !== 0; // Không dùng trong ví dụ này vì rating là .1
+        for (let i = 0; i < 5; i++) {
+            if (i < fullStars) {
+                stars.push(<FaStar key={i} className="text-yellow-400" />);
+            } else {
+                 // Logic cho nửa sao hoặc sao rỗng (ví dụ chỉ dùng sao rỗng)
+                 stars.push(<FaRegStar key={i} className="text-gray-300" />);
+            }
+        }
+         return <div className="flex items-center gap-0.5">{stars}</div>;
+    };
 
-function ProductList({ productsList }) { // Nhận productsList làm prop
-  if (!productsList || productsList.length === 0) {
-    return <p className="text-center text-white py-10">Không có sản phẩm nào để hiển thị.</p>;
-  }
+    // Định dạng giá (ví dụ)
+    const formatPrice = (price) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    };
 
-  return (
-    // Bỏ md:px-[100px] và my-8 vì đã có ở component cha (ProductByType)
-    // Điều chỉnh số cột cho phù hợp với màn hình
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-      {productsList.map((product) => (
-        // Bọc toàn bộ card sản phẩm bằng Link hoặc chỉ các phần cần click
-        // Sử dụng product.product_id để tạo URL động
-        <div key={product.product_id} className="border border-gray-700 rounded-lg overflow-hidden shadow-md bg-gray-800 flex flex-col hover:shadow-lg hover:border-blue-600 transition-all duration-300 transform hover:-translate-y-1">
-          {/* Link bao quanh ảnh và tên */}
-          <Link to={`/product/${product.product_id}`} className="block group">
-            <div className="aspect-square overflow-hidden bg-white"> {/* Đảm bảo ảnh vuông vắn */}
-                <img
-                  src={product.imageurl || '/placeholder-image.png'} // Dùng ảnh thật hoặc placeholder
-                  alt={product.name}
-                  className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300" // Thêm hiệu ứng zoom nhẹ khi hover
-                  onError={(e) => { e.target.onerror = null; e.target.src = '/placeholder-image.png'; }} // Xử lý ảnh lỗi
-                />
-            </div>
-            <div className="p-3 flex-grow flex flex-col justify-between">
-              <div> {/* Nhóm tên và đánh giá */}
-                <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 group-hover:text-blue-400 transition-colors duration-200" title={product.name}> {/* Giới hạn 2 dòng, đổi màu khi hover */}
-                  {product.name}
+     // Animation cho card khi hover hoặc xuất hiện
+     const cardVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+        hover: { scale: 1.03, transition: { duration: 0.2 } }
+    };
+
+    return (
+         // Sử dụng motion.div thay vì div thường
+        <motion.div
+             className="group border border-border rounded-lg overflow-hidden bg-surface shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col"
+             variants={cardVariants} // Áp dụng variants
+             initial="hidden" // Trạng thái ban đầu (nếu muốn animation xuất hiện)
+             whileInView="visible" // Kích hoạt khi vào viewport
+             viewport={{ once: true, amount: 0.2 }} // Cấu hình viewport trigger
+             whileHover="hover" // Animation khi hover
+         >
+            <Link to={`/product/${product.product_id}`} className="block overflow-hidden aspect-square"> {/* Giữ tỉ lệ vuông */}
+                 {/* Sử dụng ảnh thật, có placeholder nếu ảnh lỗi hoặc chưa load */}
+                 <img
+                    src={product.imageurl || '/placeholder-product.png'} // URL ảnh thật hoặc placeholder
+                    alt={product.name}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-2" // object-contain để không bị cắt
+                    loading="lazy" // Lazy loading
+                     onError={(e) => { e.target.onerror = null; e.target.src='/placeholder-product.png'; }} // Fallback nếu ảnh lỗi
+                 />
+            </Link>
+            <div className="p-3 md:p-4 flex flex-col flex-grow">
+                <h3 className="text-sm font-medium text-text-main mb-1 h-10 overflow-hidden"> {/* Giới hạn 2 dòng */}
+                    <Link to={`/product/${product.product_id}`} className="hover:text-primary line-clamp-2">
+                        {product.name}
+                    </Link>
                 </h3>
-                {/* Có thể thêm đánh giá sao ở đây nếu có */}
-                {product.rated_stars > 0 && (
-                  <div className="flex items-center text-yellow-400 text-xs mb-1">
-                    <span>{'★'.repeat(Math.floor(product.rated_stars))}</span>
-                    <span className="text-gray-500">{'☆'.repeat(5 - Math.floor(product.rated_stars))}</span>
-                    {/* <span className="ml-1 text-gray-400">({product.rated_stars.toFixed(1)})</span> */}
-                  </div>
-                )}
-              </div>
-               {/* Giá sản phẩm */}
-              <p className="text-red-500 font-bold text-base mt-1">
-                {product.price ? formatCurrency(product.price) : 'Liên hệ'}
-              </p>
+                 {/* <p className="text-xs text-text-muted mb-2 line-clamp-2">{product.description}</p> */}
+                 <div className="mt-auto"> {/* Đẩy giá, rating, nút xuống dưới */}
+                    <p className="text-lg font-semibold text-red-600 mb-1">{formatPrice(product.price)}</p>
+                     <div className="flex items-center justify-between mb-2">
+                        {renderStars(product.rated_stars || 0)}
+                        {/* <span className="text-xs text-text-muted">({product.reviewCount || 0})</span> */}
+                     </div>
+                    <button className="w-full bg-primary text-text-on-primary text-sm font-semibold py-2 rounded hover:bg-primary-dark transition-colors duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                        <FaCartPlus /> Thêm vào giỏ
+                    </button>
+                 </div>
             </div>
-          </Link>
-          {/* Nút có thể để ngoài Link nếu cần xử lý khác */}
-          {/* <div className="p-3 pt-0">
-             <Link
-               to={`/product/${product.product_id}`}
-               className="block w-full bg-blue-600 text-white text-center px-3 py-2 rounded-md text-sm hover:bg-blue-700 transition duration-200"
-             >
-               Xem chi tiết
-             </Link>
-          </div> */}
+        </motion.div>
+    );
+}
+
+
+function ProductList({ productsList }) {
+    if (!productsList || productsList.length === 0) {
+        return <p className="text-center text-text-muted py-4">Không có sản phẩm nào.</p>;
+    }
+
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            {productsList.map(product => (
+                <ProductCard key={product.product_id} product={product} />
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 }
 
 export default ProductList;

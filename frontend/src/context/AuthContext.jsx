@@ -1,72 +1,68 @@
+// File: frontend/src/context/AuthContext.jsx
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from './CartContext'; // *** FIX: Import useCart ***
 
 // Tạo Context object
 const AuthContext = createContext(null);
 
-const AUTH_TOKEN_KEY = 'authToken'; // Key để lưu token trong localStorage
-const USER_INFO_KEY = 'userInfo';   // Key để lưu thông tin user
+const AUTH_TOKEN_KEY = 'authToken';
+const USER_INFO_KEY = 'userInfo';
 
 // Tạo Provider component
 export const AuthProvider = ({ children }) => {
     const [userInfo, setUserInfo] = useState(null);
-    // *** JWT Change: Đổi tên loading thành loadingAuth để rõ ràng hơn ***
     const [loadingAuth, setLoadingAuth] = useState(true);
     const navigate = useNavigate();
+    const { clearCart } = useCart(); // *** FIX: Lấy hàm clearCart từ CartContext ***
 
     // Kiểm tra localStorage khi provider được mount lần đầu
     useEffect(() => {
-        // *** JWT Change: Kiểm tra cả token và userInfo ***
         const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
         const storedUserInfo = localStorage.getItem(USER_INFO_KEY);
 
         if (storedToken) {
-            // Nếu có token, cố gắng lấy userInfo (có thể cần gọi API /profile sau này để xác thực token và lấy info mới nhất)
             if (storedUserInfo) {
                 try {
                     setUserInfo(JSON.parse(storedUserInfo));
                 } catch (e) {
                     console.error("AuthContext: Failed to parse user info", e);
-                    localStorage.removeItem(USER_INFO_KEY); // Xóa userInfo lỗi
-                    localStorage.removeItem(AUTH_TOKEN_KEY); // Xóa cả token nếu userInfo lỗi
+                    localStorage.removeItem(USER_INFO_KEY);
+                    localStorage.removeItem(AUTH_TOKEN_KEY);
                 }
             } else {
-                // Có token nhưng không có userInfo, có thể cần gọi API để lấy lại
-                // Hoặc coi như chưa đăng nhập đầy đủ cho đến khi có userInfo
-                // Hiện tại, nếu chỉ dựa vào token thì có thể bỏ qua bước setUserInfo ở đây
                  console.warn("AuthContext: Token found but no user info in localStorage.");
+                 // Consider fetching user info based on token here if needed
             }
         } else {
-             // Nếu không có token, đảm bảo userInfo cũng là null
              setUserInfo(null);
-             localStorage.removeItem(USER_INFO_KEY); // Dọn dẹp nếu chỉ còn userInfo mà không có token
+             localStorage.removeItem(USER_INFO_KEY);
         }
 
-        setLoadingAuth(false); // Đánh dấu đã kiểm tra xong
+        setLoadingAuth(false);
     }, []);
 
-    // Hàm login: cập nhật state và localStorage (userInfo)
-    // Việc lưu token sẽ do LoginPage xử lý trực tiếp sau khi gọi API thành công
+    // Hàm login
     const login = (userData) => {
         try {
             localStorage.setItem(USER_INFO_KEY, JSON.stringify(userData));
             setUserInfo(userData);
-            // navigate('/'); // Chuyển hướng có thể thực hiện ở LoginPage
         } catch (e) {
             console.error("AuthContext: Failed to save user info", e);
         }
     };
 
-    // Hàm logout: xóa state, token và userInfo khỏi localStorage
+    // Hàm logout
     const logout = () => {
-        // *** JWT Change: Xóa cả token và userInfo ***
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(USER_INFO_KEY);
         setUserInfo(null);
-        navigate('/login'); // Chuyển về trang đăng nhập
+        clearCart(); // *** FIX: Gọi clearCart() để xóa giỏ hàng khi logout ***
+        navigate('/login');
     };
 
-    // Hàm cập nhật thông tin user trong context và localStorage sau khi sửa profile
+    // Hàm cập nhật thông tin user
     const updateAuthUserInfo = (updatedUserData) => {
          try {
             localStorage.setItem(USER_INFO_KEY, JSON.stringify(updatedUserData));
@@ -80,12 +76,10 @@ export const AuthProvider = ({ children }) => {
     // Giá trị cung cấp bởi Context
     const value = {
         userInfo,
-        loadingAuth, // Giữ nguyên tên này
-        login,       // Hàm này giờ chỉ cập nhật userInfo state và localStorage
+        loadingAuth,
+        login,
         logout,
-        updateAuthUserInfo, // Thêm hàm này
-        // *** JWT Change: Không cần thiết phải expose token ở đây, component tự lấy từ localStorage ***
-        // getToken: () => localStorage.getItem(AUTH_TOKEN_KEY),
+        updateAuthUserInfo,
     };
 
     return (
@@ -95,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-// Hook tùy chỉnh để sử dụng AuthContext dễ dàng hơn
+// Hook tùy chỉnh
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {

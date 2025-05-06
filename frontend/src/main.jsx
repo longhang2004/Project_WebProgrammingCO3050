@@ -10,11 +10,11 @@ import { CartProvider } from './context/CartContext'; // Import CartProvider
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Router>
-      <AuthProvider>
-        <CartProvider> {/* Bọc App bằng CartProvider */}
+      <CartProvider> {/* Bọc App bằng CartProvider */}
+        <AuthProvider>
           <App />
-        </CartProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </CartProvider>
     </Router>
   </StrictMode>,
 );

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../../context/CartContext'; // Đã import useCart
+import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { FaShoppingCart, FaCheckCircle, FaStar, FaRegStar, FaSpinner, FaEdit, FaTrashAlt, FaTimes, FaSave } from 'react-icons/fa';
 
@@ -56,15 +56,9 @@ const ReviewItem = ({ review, currentUserId, onEdit, onDelete, isEditing, editDa
     const userName = review.user?.username || 'Người dùng ẩn danh';
     const userAvatar = review.user?.imageurl || '/avt.png';
     const reviewDate = review.created_at ? new Date(review.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
-
-    // *** DEBUG: Ensure user IDs are compared as numbers AND check if currentUserId is valid ***
     const isOwner = currentUserId !== null && currentUserId !== undefined &&
                     review.user_id !== undefined &&
                     Number(review.user_id) === Number(currentUserId);
-
-    // *** DEBUG: Log values used for ownership check ***
-    // console.log(`ReviewItem (ID: ${review.review_id}): currentUserId=${currentUserId} (Type: ${typeof currentUserId}), review.user_id=${review.user_id} (Type: ${typeof review.user_id}), isOwner=${isOwner}`);
-
 
     return (
         <div className="py-4 border-b border-gray-700 last:border-b-0">
@@ -128,7 +122,7 @@ const ReviewItem = ({ review, currentUserId, onEdit, onDelete, isEditing, editDa
 
 function ProductDetail() {
     const { productId } = useParams();
-    const { addToCart } = useCart(); // Lấy hàm addToCart từ context
+    const { addToCart } = useCart();
     const { userInfo, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -138,11 +132,11 @@ function ProductDetail() {
     const [productError, setProductError] = useState(null);
     const [currentPrice, setCurrentPrice] = useState(null);
     const [quantity, setQuantity] = useState(1);
-    const [addedMessage, setAddedMessage] = useState(''); // State cho thông báo đã thêm
+    const [addedMessage, setAddedMessage] = useState('');
     const [reviews, setReviews] = useState([]);
     const [loadingReviews, setLoadingReviews] = useState(true);
     const [reviewsError, setReviewsError] = useState(null);
-    const [averageRating, setAverageRating] = useState(0); // State riêng cho điểm TB hiển thị
+    const [averageRating, setAverageRating] = useState(0);
     const [reviewPagination, setReviewPagination] = useState(null);
     const [newRating, setNewRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
@@ -154,22 +148,21 @@ function ProductDetail() {
     const [editFormData, setEditFormData] = useState({ rating: 0, review_text: '' });
     const [editingLoading, setEditingLoading] = useState(false);
     const [editError, setEditError] = useState('');
-    const [deleteLoading, setDeleteLoading] = useState(null); // Lưu ID đang xóa
+    const [deleteLoading, setDeleteLoading] = useState(null);
     const [deleteError, setDeleteError] = useState('');
 
-    // --- Tính toán lại điểm trung bình (chỉ cập nhật state averageRating) ---
+    // --- Tính toán lại điểm trung bình ---
     const recalculateAverageRating = useCallback((updatedReviews) => {
         if (!updatedReviews || updatedReviews.length === 0) {
-            setAverageRating(0); // Chỉ cập nhật state này
+            setAverageRating(0);
             return;
         }
         const totalRating = updatedReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
         const newAvg = totalRating / updatedReviews.length;
         const roundedAvg = parseFloat(newAvg.toFixed(1));
-        setAverageRating(roundedAvg); // Chỉ cập nhật state này
-        // Không cập nhật product state ở đây nữa
+        setAverageRating(roundedAvg);
         setReviewPagination(prev => prev ? {...prev, total_items: updatedReviews.length} : { total_items: updatedReviews.length });
-    }, []); // Dependency rỗng vì không phụ thuộc vào state khác
+    }, []); // Dependency rỗng
 
 
     // --- Kiểm tra user đã review chưa ---
@@ -181,34 +174,30 @@ function ProductDetail() {
 
     // Fetch product details
     const fetchProductDetails = useCallback(async () => {
-        console.log("Fetching product details..."); // DEBUG
+        console.log("Fetching product details...");
         setLoadingProduct(true);
         setProductError(null);
         setCurrentPrice(null);
-        setProduct(null); // *** FIX: Reset product state khi bắt đầu fetch ***
-        setAverageRating(0); // Reset average rating
+        setProduct(null);
+        setAverageRating(0);
         try {
             const response = await fetch(`http://localhost/Project_WebProgrammingCO3050/backend/api/product/${productId}`);
-            console.log("Product API Response Status:", response.status); // DEBUG
+            console.log("Product API Response Status:", response.status);
             if (!response.ok) {
-                 const errorText = await response.text(); // Get raw error text
+                 const errorText = await response.text();
                  console.error("Product API Error Response Text:", errorText);
                  let errMessage = `Lỗi tải sản phẩm: ${response.status}`;
-                 try {
-                     const errData = JSON.parse(errorText);
-                     errMessage = errData?.message || errMessage;
-                 } catch (parseError) { /* Ignore parsing error, use status code message */ }
+                 try { const errData = JSON.parse(errorText); errMessage = errData?.message || errMessage; } catch (parseError) {}
                  throw new Error(errMessage);
             }
             const data = await response.json();
-             console.log("Product API Response Data:", data); // DEBUG
+             console.log("Product API Response Data:", data);
             if (data.success && data.data) {
-                // *** FIX: Log data before setting state ***
                 console.log("Setting product state with:", data.data);
-                setProduct(data.data); // Set product state
+                setProduct(data.data);
                 setCurrentPrice(data.data.price ?? null);
                 const avgRating = parseFloat(data.data.rated_stars);
-                setAverageRating(isNaN(avgRating) ? 0 : avgRating); // Set initial average rating from product data
+                setAverageRating(isNaN(avgRating) ? 0 : avgRating);
             } else {
                  console.error("API success=false or missing data:", data);
                 throw new Error(data.message || 'API trả về success:false hoặc không có dữ liệu sản phẩm.');
@@ -216,7 +205,7 @@ function ProductDetail() {
         } catch (err) {
             console.error("Lỗi fetch chi tiết sản phẩm:", err);
             setProductError(err.message);
-            setProduct(null); // Ensure product is null on error
+            setProduct(null);
         } finally {
             setLoadingProduct(false);
         }
@@ -224,13 +213,13 @@ function ProductDetail() {
 
     // Fetch reviews
     const fetchReviews = useCallback(async () => {
-        console.log("Fetching reviews..."); // DEBUG
+        console.log("Fetching reviews...");
         setLoadingReviews(true);
         setReviewsError(null);
-        const fetchReviewsUrl = `http://localhost/Project_WebProgrammingCO3050/backend/api/product/${productId}/reviews?page=1&per_page=10`; // Tăng per_page để lấy nhiều hơn
+        const fetchReviewsUrl = `http://localhost/Project_WebProgrammingCO3050/backend/api/product/${productId}/reviews?page=1&per_page=10`;
         try {
             const response = await fetch(fetchReviewsUrl);
-             console.log("Reviews API Response Status:", response.status); // DEBUG
+             console.log("Reviews API Response Status:", response.status);
             if (!response.ok) {
                  const errorText = await response.text();
                  console.error("Reviews API Error Response Text:", errorText);
@@ -239,7 +228,7 @@ function ProductDetail() {
                  throw new Error(errMessage);
             }
             const data = await response.json();
-             console.log("Reviews API Response Data:", data); // DEBUG
+             console.log("Reviews API Response Data:", data);
             if (data.success && data.data?.data) {
                 setReviews(data.data.data);
                 setReviewPagination(data.data.pagination || { total_items: data.data.data.length });
@@ -255,31 +244,27 @@ function ProductDetail() {
         } finally {
             setLoadingReviews(false);
         }
-    }, [productId]); // Removed recalculateAverageRating dependency
+    }, [productId]);
 
     // Initial data fetching
     useEffect(() => {
-        // *** FIX: Fetch product details first, then reviews ***
-        // This ensures product state is set before reviews might try to use it indirectly
         fetchProductDetails().then(() => {
-             // Fetch reviews only after product details are attempted
-             // (even if product fetch failed, we might still want to show reviews)
              fetchReviews();
         });
-    }, [fetchProductDetails, fetchReviews]); // Keep dependencies
+    }, [fetchProductDetails, fetchReviews]);
 
 
     // *** ADD TO CART: Cập nhật hàm này ***
-    const handleAddToCart = () => {
-        // Kiểm tra xem sản phẩm và giá đã được tải chưa
+    const handleAddToCart = (event) => {
+        console.log("handleAddToCart handler called");
+        // event.stopPropagation(); // Thường không cần thiết trừ khi có vấn đề bubbling
+
         if (!product || currentPrice === null) {
             console.error("Add to cart failed: Product data or price not loaded yet.");
-            // Có thể hiển thị thông báo lỗi cho người dùng
             setAddedMessage("Lỗi: Không thể thêm sản phẩm vào giỏ lúc này.");
              setTimeout(() => setAddedMessage(''), 3000);
             return;
         }
-        // Kiểm tra số lượng hợp lệ
         if (quantity < 1) {
             console.error("Add to cart failed: Invalid quantity.");
             setAddedMessage("Lỗi: Số lượng không hợp lệ.");
@@ -287,24 +272,17 @@ function ProductDetail() {
             return;
         }
 
-        // Tạo đối tượng sản phẩm để thêm vào giỏ
-        // Chỉ bao gồm các thông tin cần thiết cho giỏ hàng
         const itemToAdd = {
             product_id: product.product_id,
             name: product.name,
-            price: currentPrice, // Sử dụng giá hiện tại
+            price: currentPrice,
             imageurl: product.imageurl,
-            // Thêm các thuộc tính khác nếu cần (ví dụ: màu sắc, bộ nhớ đã chọn)
-            // color: selectedColor,
-            // storage: selectedStorage,
         };
 
-        // Gọi hàm addToCart từ CartContext
         try {
-            addToCart(itemToAdd, quantity); // Truyền sản phẩm và số lượng
-            // Hiển thị thông báo thành công
+            console.log("Calling addToCart from context with:", itemToAdd, "quantity:", quantity);
+            addToCart(itemToAdd, quantity);
             setAddedMessage(`${quantity} "${product.name}" đã được thêm vào giỏ!`);
-            // Tự động ẩn thông báo sau vài giây
             setTimeout(() => setAddedMessage(''), 3000);
         } catch (error) {
              console.error("Error adding item to cart:", error);

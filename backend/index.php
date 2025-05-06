@@ -1,72 +1,95 @@
 <?php
+// File: backend/index.php
+
+// *** BẬT OUTPUT BUFFERING ***
+ob_start();
+
+// *** CẤU HÌNH SESSION COOKIE PATH & DOMAIN & SAMESITE ***
+// Thêm cấu hình này TRƯỚC session_start()
+session_set_cookie_params([
+    'lifetime' => 0, // Cookie tồn tại đến khi đóng trình duyệt
+    'path' => '/',   // Áp dụng cho toàn bộ domain
+    'domain' => '',  // Để trống cho localhost, trình duyệt sẽ tự xử lý
+    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on', // Chỉ true nếu dùng HTTPS
+    'httponly' => true, // Ngăn truy cập cookie từ JavaScript (bảo mật)
+    'samesite' => 'Lax' // Bắt đầu với 'Lax'. Nếu review vẫn lỗi, cân nhắc 'None' (nhưng cần HTTPS)
+]);
+
+// *** KHỞI TẠO SESSION NGAY TỪ ĐẦU ***
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+    // Log session ID sau khi start (chỉ để debug nếu cần)
+    // error_log("DEBUG index.php - Session started with ID: " . session_id());
+}
+
 // --- CORS and Content Type Headers ---
-// Allow requests from your React app's origin
+// (Giữ nguyên các header CORS và Content-Type của bạn)
 header('Access-Control-Allow-Origin: http://localhost:5173');
-// Allow common methods
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-// Allow necessary headers
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-// Set content type to JSON
 header('Content-Type: application/json');
 
+
 // --- Handle OPTIONS Pre-flight request ---
-// Browsers send an OPTIONS request first for CORS checks
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200); // Respond OK to OPTIONS
-    exit(); // Stop script execution for OPTIONS
+    header('Access-Control-Max-Age: 86400');
+    http_response_code(200);
+    ob_end_flush();
+    exit();
 }
 
 // --- Basic Routing ---
-$base_path = '/Project_WebProgrammingCO3050/backend/'; // Define your base path if needed
+// (Giữ nguyên phần routing của bạn)
+$base_path = '/Project_WebProgrammingCO3050/backend/';
 $request_uri = $_SERVER['REQUEST_URI'];
-
-// Remove query string if present
 $request_path = parse_url($request_uri, PHP_URL_PATH);
 
-// Remove base path if your .htaccess doesn't handle it
-// If your web server routes directly to index.php without the base path prefix,
-// you might not need to remove it here. Check your XAMPP/Apache config.
 if (strpos($request_path, $base_path) === 0) {
     $request_path = substr($request_path, strlen($base_path));
 }
 
-// Trim slashes and split the remaining path
 $uriSegments = explode('/', trim($request_path, '/'));
 
-// --- Input Validation ---
-// Expecting "api/{resource}/..."
 if (empty($uriSegments[0]) || $uriSegments[0] !== 'api') {
-    http_response_code(400); // Bad Request
+    http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid API request structure. Expected /api/...']);
+    ob_end_flush();
     exit();
 }
 
-// Determine the resource (e.g., 'product', 'user')
 $resource = isset($uriSegments[1]) ? $uriSegments[1] : null;
 
 if (!$resource) {
-    http_response_code(400); // Bad Request
+    http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'API resource not specified. Expected /api/{resource}/...']);
-    exit();
+     ob_end_flush(); exit();
 }
 
-// Construct the path to the resource handler file
-// Use __DIR__ for reliability
+// *** SỬA LỖI: Cho phép resource 'order' nếu bạn có API order ***
+$allowed_resources = ['product', 'user', 'review', 'cart', 'order']; // Thêm 'order' vào đây
+if (!in_array($resource, $allowed_resources)) {
+     http_response_code(404);
+     echo json_encode(['success' => false, 'message' => "Resource '{$resource}' not found."]);
+     ob_end_flush(); exit();
+}
+
+
 $resource_file = __DIR__ . "/api/{$resource}.php";
 
-// Check if the resource handler file exists
 if (file_exists($resource_file)) {
-    // Pass control to the specific resource handler
     require $resource_file;
 } else {
-    // Resource handler not found
-    http_response_code(404); // Not Found
+    http_response_code(404);
     echo json_encode([
         'success' => false,
         'message' => "API resource handler '{$resource}.php' not found.",
-        'checked_path' => $resource_file // Include path for debugging
+        'checked_path' => $resource_file
     ]);
-    exit();
+     ob_end_flush(); exit();
 }
+
+// *** GỬI OUTPUT BUFFER VÀ KẾT THÚC ***
+ob_end_flush();
 
 ?>

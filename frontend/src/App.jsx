@@ -14,6 +14,7 @@ import UserProfile from './pages/user/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute'
 import ProductDetail from './pages/public/ProductDetail';
 import UserCart from './pages/user/UserCart';
+import HomePage from './pages/public/HomePage'; // *** THÊM: Import HomePage ***
 
 function App() {
   return (
@@ -28,7 +29,8 @@ function App() {
         {/* 2. Phần nội dung chính (bao bọc Routes) với lớp flex-grow */}
         <main className="flex-grow"> {/* Hoặc dùng className="flex-1" */}
           <Routes>
-            <Route path="/" element={<BlogList />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/blog" element={<BlogList />} />
             <Route path="/blog/:id" element={<BlogDetail />} />
             <Route path="/about" element={<AboutPage />} /> {/* Route cho trang Giới thiệu */}
             <Route path="/faq" element={<FAQPage />} /> {/* Route cho trang FAQ */}

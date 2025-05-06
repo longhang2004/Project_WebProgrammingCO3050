@@ -1,171 +1,164 @@
 <?php
-// --- BẬT HIỂN THỊ LỖI ĐỂ DEBUG (CHỈ DÙNG KHI PHÁT TRIỂN) ---
-ini_set('display_errors', 1); // Bật hiển thị lỗi ra màn hình
-ini_set('display_startup_errors', 1); // Bật hiển thị lỗi khởi động
-error_reporting(E_ALL); // Hiển thị tất cả các loại lỗi, cảnh báo, thông báo
-// --- KẾT THÚC PHẦN BẬT LỖI ---
+// File: backend/api/product.php
 
-// Note: Headers are already set by index.php, but repeating them doesn't hurt
-// and makes this file potentially runnable standalone for testing.
+// --- Headers ---
 header('Access-Control-Allow-Origin: http://localhost:5173');
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Content-Type: application/json');
 
-// --- Handle OPTIONS Pre-flight request (Redundant if index.php handles it, but safe) ---
+// --- Handle OPTIONS Pre-flight request ---
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
 // --- Dependencies ---
-// Use __DIR__ to ensure paths are correct relative to *this* file's location
 require_once __DIR__ . '/../controllers/ProductController.php';
-require_once __DIR__ . '/../utils/Response.php'; // Assuming Response class exists
+require_once __DIR__ . '/../controllers/ReviewController.php';
+require_once __DIR__ . '/../utils/Response.php';
+// *** FIX: Explicitly require the Review model here ***
+// Ensure the Review class definition is loaded before ReviewController might need it.
+require_once __DIR__ . '/../models/Review.php';
 
-// --- Instantiate Controller and Response ---
+
+// --- Instantiate Controllers and Response ---
 try {
-    $controller = new ProductController(); // Ensure constructor doesn't throw errors
-    $response = new Response(); // Ensure constructor doesn't throw errors
+    $productController = new ProductController();
+    // Now it should be safe to instantiate ReviewController
+    $reviewController = new ReviewController();
+    $response = new Response();
 } catch (Throwable $e) {
-    // Catch potential errors during instantiation (e.g., database connection)
-    http_response_code(500); // Internal Server Error
-    // Hiển thị lỗi JSON nếu khởi tạo thất bại (lỗi này sẽ được bắt ở đây)
+    // This catch block should now only trigger for other initialization errors
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to initialize backend components.',
-        'error' => $e->getMessage() // Provide error details (consider hiding in production)
+        'message' => 'Failed to initialize product API components.',
+        'error' => $e->getMessage() // Show the actual error during debugging
     ]);
-    exit(); // Dừng lại nếu không khởi tạo được controller/response
+    exit();
 }
 
 
 // --- Routing within the Product API ---
-
-// Get the request path relative to the base API endpoint
-$base_api_path = '/Project_WebProgrammingCO3050/backend/api/product'; // Base for this resource
+$base_api_path = '/Project_WebProgrammingCO3050/backend/api/product';
 $request_uri = $_SERVER['REQUEST_URI'];
 $request_path = parse_url($request_uri, PHP_URL_PATH);
 
-// Get the part of the path *after* /api/product/
 $action_path = '';
 if (strpos($request_path, $base_api_path) === 0) {
     $action_path = substr($request_path, strlen($base_api_path));
 }
 
-// Trim slashes and split the action path
 $actionSegments = explode('/', trim($action_path, '/'));
-$action = isset($actionSegments[0]) ? $actionSegments[0] : ''; // e.g., 'smartphones', 'laptops', '123', or ''
+$action = isset($actionSegments[0]) ? $actionSegments[0] : '';
+$sub_action = isset($actionSegments[1]) ? $actionSegments[1] : '';
+
 
 // --- Handle Request based on Method and Action ---
 $request_method = $_SERVER['REQUEST_METHOD'];
-
-// Đặt một cờ để kiểm tra xem JSON đã được gửi chưa
-$json_sent = false;
+$json_sent = false; // Flag to prevent multiple responses
 
 try {
     switch ($request_method) {
         case 'GET':
-            if (is_numeric($action)) { // Check if the action is a numeric ID
-                $controller->getProductById($action);
-                $json_sent = true; // Giả định controller sẽ echo JSON và exit
-            } elseif ($action === 'smartphones') {
-                // Pass query parameters (page, per_page) to the controller method
+            // --- Handle GET /api/product/{id}/reviews ---
+            if (is_numeric($action) && $action !== '' && $sub_action === 'reviews') {
+                $productId = intval($action);
+                // Call the method in ReviewController
+                $reviewController->getReviewsForProduct($productId);
+                $json_sent = true;
+            }
+            // --- Handle GET /api/product/{id} (Get product details) ---
+            elseif (is_numeric($action) && $action !== '' && $sub_action === '') {
+                $productId = intval($action);
+                // Call the method in ProductController
+                $productController->getProductById($productId);
+                $json_sent = true;
+            }
+            // --- Handle GET /api/product/smartphones or /laptops ---
+            elseif (!is_numeric($action) && ($action === 'smartphones' || $action === 'laptops') && $sub_action === '') {
                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
                 $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 12;
-                $controller->getAllSmartphones($page, $per_page); // Modify controller if needed
-                $json_sent = true; // Giả định controller sẽ echo JSON và exit
-            } elseif ($action === 'laptops') {
-                 // Pass query parameters (page, per_page) to the controller method
-                $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-                $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 12;
-                $controller->getAllLaptops($page, $per_page); // Modify controller if needed
-                 $json_sent = true; // Giả định controller sẽ echo JSON và exit
-            } elseif ($action === '') { // No specific action means get all
-                 // Pass query parameters (page, per_page) to the controller method
-                $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-                $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 12;
-                $controller->getAllProducts($page, $per_page); // Modify controller if needed
-                 $json_sent = true; // Giả định controller sẽ echo JSON và exit
-            } else {
-                // Unknown GET action
-                // Chỉ echo nếu chưa có JSON nào được gửi
+                if ($action === 'smartphones') {
+                    $productController->getAllSmartphones($page, $per_page);
+                } else { // Laptops
+                    $productController->getAllLaptops($page, $per_page);
+                }
+                $json_sent = true;
+            }
+             // --- Handle GET /api/product (Get all products) ---
+             elseif ($action === '' && $sub_action === '') {
+                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+                 $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 12;
+                 $productController->getAllProducts($page, $per_page);
+                 $json_sent = true;
+             }
+            // --- Other invalid GET cases ---
+            else {
                 if (!$json_sent) {
-                    echo $response->error("Unknown product action: " . htmlspecialchars($action), 404);
+                    echo $response->error("Invalid GET endpoint for product API.", 400);
                     $json_sent = true;
                 }
             }
             break;
 
         case 'POST':
-             // Assuming create doesn't need an action in the URL path
-            if ($action === '') {
-               $controller->createProduct(); // Needs to read php://input for data
-               $json_sent = true; // Giả định controller sẽ echo JSON và exit
-            } else {
-                if (!$json_sent) {
-                    echo $response->error("Invalid POST request path", 400);
-                    $json_sent = true;
-                }
-            }
+             if ($action === '' && $sub_action === '') {
+                 // Requires authentication/authorization (e.g., check JWT for admin role)
+                 // Example: checkAdminToken(); // You'd need to implement this
+                 $productController->createProduct();
+                 $json_sent = true;
+             } else {
+                 if (!$json_sent) { echo $response->error("Invalid POST endpoint.", 400); $json_sent = true; }
+             }
             break;
-
         case 'PUT':
-            if (is_numeric($action)) { // Expecting /api/product/{id}
-                $controller->updateProduct($action); // Needs to read php://input for data
-                $json_sent = true; // Giả định controller sẽ echo JSON và exit
+            if (is_numeric($action) && $action !== '' && $sub_action === '') {
+                 // Requires authentication/authorization
+                 // Example: checkAdminToken();
+                $productController->updateProduct(intval($action));
+                $json_sent = true;
             } else {
-                if (!$json_sent) {
-                    echo $response->error("Product ID is required for PUT request", 400);
-                    $json_sent = true;
-                }
+                if (!$json_sent) { echo $response->error("Invalid PUT endpoint. Requires /api/product/{id}", 400); $json_sent = true; }
             }
             break;
-
         case 'DELETE':
-            if (is_numeric($action)) { // Expecting /api/product/{id}
-                $controller->deleteProduct($action);
-                 $json_sent = true; // Giả định controller sẽ echo JSON và exit
+            if (is_numeric($action) && $action !== '' && $sub_action === '') {
+                 // Requires authentication/authorization
+                 // Example: checkAdminToken();
+                $productController->deleteProduct(intval($action));
+                $json_sent = true;
             } else {
-                 if (!$json_sent) {
-                    echo $response->error("Product ID is required for DELETE request", 400);
-                    $json_sent = true;
-                 }
+                if (!$json_sent) { echo $response->error("Invalid DELETE endpoint. Requires /api/product/{id}", 400); $json_sent = true; }
             }
             break;
 
         default:
-            // Method not allowed
             if (!$json_sent) {
-                echo $response->error("Method " . htmlspecialchars($request_method) . " not allowed for /api/product", 405);
+                echo $response->error("Method not allowed for product API", 405);
                 $json_sent = true;
             }
             break;
     }
-} catch (Throwable $e) {
-    // Generic error handling for controller actions
-    // Chỉ gửi lỗi JSON nếu chưa có gì được gửi trước đó
-    if (!$json_sent) {
-        http_response_code(500); // Internal Server Error
-        // Be careful about exposing detailed errors in production
-        echo json_encode([
-            'success' => false,
-            'message' => 'An error occurred while processing the request inside controller action.',
-            'error' => $e->getMessage() // Log this error properly on the server
-        ]);
-         $json_sent = true; // Đánh dấu đã gửi JSON lỗi
-    }
-    // Nếu lỗi xảy ra sau khi JSON đã được gửi (ít khả năng), nó vẫn sẽ được hiển thị do display_errors=1
-}
 
-// --- Quan trọng: Đảm bảo không có output nào khác sau khi JSON (hoặc lỗi) đã được gửi ---
-// Nếu $json_sent là false ở đây, có nghĩa là có một nhánh logic không xử lý hoặc không gửi phản hồi.
-// Điều này có thể gây ra trang trắng hoặc lỗi không mong muốn.
-// Bạn có thể thêm một phản hồi mặc định ở đây nếu cần, nhưng lý tưởng nhất là mọi nhánh đều phải gửi phản hồi.
-// Ví dụ:
-// if (!$json_sent) {
-//     http_response_code(500);
-//     echo json_encode(['success' => false, 'message' => 'Unhandled request path or internal error.']);
-// }
+} catch (Throwable $e) {
+     // Handle generic errors from controller actions or routing logic
+     if (!$json_sent) {
+        // Determine appropriate status code (e.g., 401 for auth errors, 400 for validation, 500 for server errors)
+        $statusCode = 500;
+        $errorMessage = 'An internal error occurred while processing the product request.';
+
+        // Example: Check for specific exception types or codes if needed
+        // if ($e instanceof AuthenticationException) { $statusCode = 401; $errorMessage = $e->getMessage(); }
+        // elseif ($e instanceof ValidationException) { $statusCode = 400; $errorMessage = $e->getMessage(); }
+
+        http_response_code($statusCode);
+        error_log("Error processing product request: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+        echo json_encode([ 'success' => false, 'message' => $errorMessage ]);
+        $json_sent = true;
+     }
+}
 
 ?>
