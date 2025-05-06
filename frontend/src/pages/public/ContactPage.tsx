@@ -192,9 +192,9 @@ function ContactPage() {
                                             Đang gửi...
                                         </>
                                     ) : (
-                                         <>
+                                        <>
                                             Gửi Tin Nhắn <FiSend className="ml-2 -mr-1 h-5 w-5" />
-                                         </>
+                                        </>
                                     )}
                                 </button>
 

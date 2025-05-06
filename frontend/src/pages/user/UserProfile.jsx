@@ -1,10 +1,11 @@
-// src/pages/user/UserProfile.jsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext'; // Import hook để lấy thông tin user
-import { FaUserEdit, FaSave, FaSpinner } from 'react-icons/fa'; // Icons for editing and saving
+import { useAuth } from '../../context/AuthContext';
+import { FaUserEdit, FaSave, FaSpinner } from 'react-icons/fa';
+import { Link } from 'react-router-dom'; // Import Link
 
 function UserProfile() {
-    const { userInfo, login: updateAuthUserInfo, loadingAuth } = useAuth(); // Lấy userInfo và hàm login (để cập nhật context)
+    // *** JWT Change: Lấy thêm hàm updateAuthUserInfo để cập nhật context sau khi sửa ***
+    const { userInfo, updateAuthUserInfo, loadingAuth } = useAuth();
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -12,15 +13,14 @@ function UserProfile() {
         email: '',
         phone_number: '',
         address: '',
-        imageurl: '', // Thêm trường ảnh đại diện
-        // Không bao gồm password ở đây trừ khi muốn đổi mật khẩu
+        imageurl: '',
     });
-    const [isEditing, setIsEditing] = useState(false); // State để bật/tắt chế độ chỉnh sửa
-    const [loading, setLoading] = useState(false); // State loading cho việc cập nhật
+    const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Điền form với thông tin user khi component mount hoặc userInfo thay đổi
+    // Điền form với thông tin user (giữ nguyên)
     useEffect(() => {
         if (userInfo) {
             setFormData({
@@ -33,7 +33,7 @@ function UserProfile() {
                 imageurl: userInfo.imageurl || '',
             });
         }
-    }, [userInfo]); // Phụ thuộc vào userInfo từ context
+    }, [userInfo]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -45,9 +45,8 @@ function UserProfile() {
 
     const handleEditToggle = () => {
         setIsEditing(!isEditing);
-        setError(''); // Xóa lỗi cũ khi chuyển chế độ
-        setSuccess(''); // Xóa thông báo thành công cũ
-        // Reset form về giá trị ban đầu nếu hủy chỉnh sửa
+        setError('');
+        setSuccess('');
         if (isEditing && userInfo) {
              setFormData({
                 first_name: userInfo.first_name || '',
@@ -67,13 +66,24 @@ function UserProfile() {
         setSuccess('');
         setLoading(true);
 
+        // *** JWT Change: Lấy token từ localStorage ***
+        const token = localStorage.getItem('authToken');
+
+        // *** JWT Change: Kiểm tra token thay vì userInfo để gửi yêu cầu ***
+        if (!token) {
+            setError('Yêu cầu xác thực. Vui lòng đăng nhập lại.');
+            setLoading(false);
+            return;
+        }
+
+        // Kiểm tra user_id vẫn cần thiết để biết *ai* đang được cập nhật
         if (!userInfo || !userInfo.user_id) {
             setError('Không tìm thấy thông tin người dùng để cập nhật.');
             setLoading(false);
             return;
         }
 
-        // --- Validation cơ bản phía Client (Thêm nếu cần) ---
+        // --- Validation cơ bản phía Client (giữ nguyên) ---
         if (!formData.first_name || !formData.last_name || !formData.username || !formData.email || !formData.phone_number || !formData.address) {
              setError('Vui lòng điền đầy đủ các trường bắt buộc.');
              setLoading(false);
@@ -82,33 +92,35 @@ function UserProfile() {
 
 
         try {
-            // Gọi API backend để cập nhật user
-            // Backend endpoint là PUT /api/user/{user_id}
             const response = await fetch(`http://localhost/Project_WebProgrammingCO3050/backend/api/user/${userInfo.user_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Thêm Authorization header nếu API yêu cầu (ví dụ: dùng JWT)
-                    // 'Authorization': `Bearer ${your_auth_token}`
+                    // *** JWT Change: Thêm header Authorization ***
+                    'Authorization': `Bearer ${token}`
                 },
-                // Gửi các trường cần cập nhật, không gửi password trừ khi có form đổi pass riêng
                 body: JSON.stringify(formData),
+                 // *** JWT Change: Bỏ credentials: 'include' (nếu có) ***
             });
 
             const result = await response.json();
 
             if (!response.ok || !result.success) {
+                 // Xử lý lỗi 401 (Unauthorized) do token hết hạn/không hợp lệ
+                 if (response.status === 401) {
+                     throw new Error("Phiên đăng nhập hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.");
+                     // Có thể thêm logic xóa token cũ và điều hướng login
+                 }
                 throw new Error(result.message || `HTTP error! status: ${response.status}`);
             }
 
             // --- Cập nhật thành công ---
             setSuccess('Cập nhật thông tin thành công!');
-            setIsEditing(false); // Tắt chế độ chỉnh sửa
+            setIsEditing(false);
 
-            // Cập nhật lại thông tin user trong AuthContext và localStorage
-            // Tạo object user mới với thông tin đã cập nhật
-            const updatedUserInfo = { ...userInfo, ...formData };
-            updateAuthUserInfo(updatedUserInfo); // Gọi hàm login từ context để cập nhật state và localStorage
+            // *** JWT Change: Cập nhật lại thông tin user trong AuthContext và localStorage ***
+            const updatedUserInfo = { ...userInfo, ...formData }; // Kết hợp info cũ và mới
+            updateAuthUserInfo(updatedUserInfo); // Gọi hàm từ context
 
         } catch (err) {
             console.error('Lỗi cập nhật profile:', err);
@@ -118,20 +130,24 @@ function UserProfile() {
         }
     };
 
-    // Xử lý khi chưa load xong thông tin user từ context
+    // Xử lý khi chưa load xong thông tin user từ context (giữ nguyên)
     if (loadingAuth) {
         return <div className="text-center text-white py-10">Đang tải thông tin...</div>;
     }
 
-    // Xử lý khi không có thông tin user (chưa đăng nhập hoặc có lỗi)
-    if (!userInfo) {
-        // Có thể chuyển hướng về trang đăng nhập
-        // Hoặc hiển thị thông báo yêu cầu đăng nhập
+    // *** JWT Change: Kiểm tra token để xác định đã đăng nhập chưa ***
+    if (!localStorage.getItem('authToken')) {
          return <div className="text-center text-white py-10">Vui lòng <Link to="/login" className="text-blue-400 hover:underline">đăng nhập</Link> để xem hồ sơ.</div>;
     }
+    // Vẫn cần userInfo để hiển thị form ban đầu
+     if (!userInfo) {
+          return <div className="text-center text-white py-10">Đang tải dữ liệu người dùng... (Nếu thông báo này tồn tại lâu, vui lòng thử đăng nhập lại)</div>;
+     }
+
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-900 text-white">
+        // --- Phần JSX của form giữ nguyên ---
+         <div className="min-h-screen flex flex-col bg-gray-900 text-white">
             <div className="container mx-auto px-4 py-8 flex-1">
                 <h1 className="text-3xl font-bold mb-6 text-center">Hồ Sơ Cá Nhân</h1>
 
@@ -157,9 +173,8 @@ function UserProfile() {
                                     value={formData.imageurl}
                                     onChange={handleChange}
                                     className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    placeholder="https://example.com/new-avatar.jpg"
+                                    placeholder="[https://example.com/new-avatar.jpg](https://example.com/new-avatar.jpg)"
                                 />
-                                {/* Lưu ý: Đây là cách đơn giản, nên dùng upload file thực tế */}
                             </div>
                         )}
                     </div>
@@ -235,16 +250,9 @@ function UserProfile() {
                             )}
                         </div>
                     </form>
-
-                    {/* Có thể thêm phần đổi mật khẩu ở đây */}
-                    {/* <div className="mt-8 border-t border-gray-700 pt-6">
-                        <h3 className="text-lg font-medium mb-4">Đổi mật khẩu</h3>
-                        {/* Form đổi mật khẩu */}
-                    {/*</div> */}
-
                 </div>
             </div>
-            {/* CSS cho input fields */}
+            {/* CSS cho input fields (giữ nguyên) */}
             <style jsx>{`
                 .input-field {
                     appearance: none;
@@ -288,4 +296,3 @@ function UserProfile() {
 }
 
 export default UserProfile;
-

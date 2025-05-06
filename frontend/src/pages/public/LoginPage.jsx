@@ -1,7 +1,6 @@
-// src/pages/public/LoginPage.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // Không cần useNavigate ở đây nữa
-import { useAuth } from '../../context/AuthContext'; // Import useAuth
+import { Link, useNavigate } from 'react-router-dom'; // Thêm useNavigate
+import { useAuth } from '../../context/AuthContext';
 
 function LoginPage() {
     const [formData, setFormData] = useState({
@@ -10,7 +9,8 @@ function LoginPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth(); // Lấy hàm login từ context
+    const { login } = useAuth();
+    const navigate = useNavigate(); // Sử dụng hook navigate
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -32,6 +32,8 @@ function LoginPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(formData),
+                // *** JWT Change: Không cần credentials: 'include' nữa ***
+                // credentials: 'include'
             });
 
             const result = await response.json();
@@ -43,14 +45,30 @@ function LoginPage() {
             // --- Đăng nhập thành công ---
             console.log('Login successful:', result.data);
 
-            // Gọi hàm login từ Context để cập nhật state và điều hướng
+            // *** JWT Change: Lưu token vào localStorage ***
+            if (result.data.token) {
+                 localStorage.setItem('authToken', result.data.token); // Lưu token
+                 console.log("Token saved to localStorage");
+            } else {
+                 console.error("Login response missing token!");
+                 // Có thể throw lỗi ở đây nếu token là bắt buộc
+                 throw new Error("Authentication token not received from server.");
+            }
+
+
+            // Gọi hàm login từ Context để cập nhật userInfo state và localStorage
             login(result.data.user);
 
-            // Không cần xử lý localStorage hay navigate ở đây nữa
+            // *** JWT Change: Chuyển hướng về trang chủ sau khi login thành công ***
+            navigate('/');
+
 
         } catch (err) {
             console.error('Lỗi đăng nhập:', err);
             setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+             // *** JWT Change: Xóa token nếu đăng nhập lỗi (đề phòng trường hợp token cũ còn sót lại) ***
+             localStorage.removeItem('authToken');
+             localStorage.removeItem('userInfo');
         } finally {
             setLoading(false);
         }
