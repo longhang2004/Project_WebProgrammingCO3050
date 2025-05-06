@@ -23,6 +23,20 @@ class ProductController {
         }
     }
 
+    public function getProductByName() {
+        $name = isset($_GET['name']) ? $_GET['name'] : null;
+        if ($name) {
+            $product = $this->product->getProductByName($name);
+            if ($product) {
+                echo $this->response->success($product);
+            } else {
+                echo $this->response->error("Product not found", 404);
+            }
+        } else {
+            echo $this->response->error("Missing product name", 400);
+        }
+    }
+
     public function getAllSmartphones() {
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? intval($_GET['page']) : 1;
         $perPage = isset($_GET['per_page']) && is_numeric($_GET['per_page']) ? intval($_GET['per_page']) : 10;

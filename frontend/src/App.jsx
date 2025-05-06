@@ -14,6 +14,9 @@ import UserProfile from './pages/user/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute'
 import ProductDetail from './pages/public/ProductDetail';
 import UserCart from './pages/user/UserCart';
+import AdminPage from './pages/admin/AdminPage';
+import UserList from './components/UserList';
+import OrderList from './components/OrderList';
 
 function App() {
   return (
@@ -38,11 +41,30 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/product/:productId" element={<ProductDetail />} />
-
             <Route element={<ProtectedRoute />}>
               <Route path="/profile" element={<UserProfile />} />
               <Route path="/cart" element={<UserCart />} /> {/* Route giỏ hàng */}
-              </Route>
+              {/* Admin */}
+              <Route path="/admin/products" element={<AdminPage />} />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminPage>
+                    <UserList />
+                  </AdminPage>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <AdminPage>
+                    <OrderList />
+                  </AdminPage>
+                }
+              />
+              <Route path="/admin" element={<Navigate to="/admin/products" />} />
+              <Route path="/" element={<Navigate to="/admin/products" />} />
+            </Route>
 
           </Routes>
         </main>

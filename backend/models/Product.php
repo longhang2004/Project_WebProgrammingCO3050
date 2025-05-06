@@ -237,6 +237,39 @@ class Product {
         }
     }
 
+    // Lấy sản phẩm theo tên (không cần pagination)
+    public function getProductByName($name) {
+         try {
+            $query = "SELECT p.*,
+                           s.processor, s.camera, s.battery, s.screen_description, s.RAM_ROM, s.sim_connectivity,
+                           l.CPU, l.GPU, l.RAM, l.storage, l.screen_description AS laptop_screen, l.battery AS laptop_battery, l.ports
+                    FROM products p
+                    LEFT JOIN smartphones s ON p.product_id = s.product_id
+                    LEFT JOIN laptops l ON p.product_id = l.product_id
+                    WHERE p.name LIKE ?";
+            $stmt = $this->conn->prepare($query);
+             if ($stmt === false) {
+                 throw new Exception("Prepare failed (getProductByName): " . $this->conn->error);
+            }
+            $name = "%" . $name . "%"; // Thêm ký tự % để tìm kiếm theo tên
+            $stmt->bind_param("s", $name);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $products = [];
+
+            while ($row = $result->fetch_assoc()) {
+                $products[] = $this->formatProduct($row);
+            }
+             $stmt->close();
+
+            return $products; // Trả về danh sách sản phẩm tìm được
+
+        } catch (Exception $e) {
+            error_log("Database error in getProductByName: " . $e->getMessage());
+            return null; // Hoặc trả về một thông báo lỗi
+        }
+    }
+
     // Thêm mới sản phẩm (chỉ vào bảng Products, chi tiết sẽ được thêm sau)
     public function createProduct($name, $description, $price, $stock, $rated_stars, $warranty_period, $manufacturer, $warranty_policy, $imageurl) {
          try {

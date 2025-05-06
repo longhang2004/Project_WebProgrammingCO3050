@@ -81,6 +81,10 @@ try {
                 $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 12;
                 $controller->getAllLaptops($page, $per_page); // Modify controller if needed
                  $json_sent = true; // Giả định controller sẽ echo JSON và exit
+            } else if ($action === 'search') { // Example: /api/product/search?name=product_name
+                $name = isset($_GET['name']) ? htmlspecialchars($_GET['name']) : ''; // Sanitize input
+                $controller->getProductByName($name); // Modify controller if needed
+                $json_sent = true; // Giả định controller sẽ echo JSON và exit
             } elseif ($action === '') { // No specific action means get all
                  // Pass query parameters (page, per_page) to the controller method
                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
