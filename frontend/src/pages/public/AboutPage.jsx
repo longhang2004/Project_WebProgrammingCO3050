@@ -146,7 +146,7 @@ function AboutPage() {
           </p>
           <div className="space-x-4">
             <a
-              href="/products" // Link to your product page
+              href="/" // Link to your product page
               className="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
             >
               Xem Sản Phẩm

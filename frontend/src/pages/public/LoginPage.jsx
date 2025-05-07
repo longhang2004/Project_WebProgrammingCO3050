@@ -1,5 +1,7 @@
+// File: frontend/src/pages/public/LoginPage.jsx
+
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Thêm useNavigate
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // Thêm useLocation
 import { useAuth } from '../../context/AuthContext';
 
 function LoginPage() {
@@ -9,8 +11,9 @@ function LoginPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
-    const navigate = useNavigate(); // Sử dụng hook navigate
+    const { login, userInfo } = useAuth(); // Lấy thêm userInfo để kiểm tra is_admin sau khi login
+    const navigate = useNavigate();
+    const location = useLocation(); // Để lấy state 'from' nếu có
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -32,8 +35,6 @@ function LoginPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(formData),
-                // *** JWT Change: Không cần credentials: 'include' nữa ***
-                // credentials: 'include'
             });
 
             const result = await response.json();
@@ -45,37 +46,39 @@ function LoginPage() {
             // --- Đăng nhập thành công ---
             console.log('Login successful:', result.data);
 
-            // *** JWT Change: Lưu token vào localStorage ***
             if (result.data.token) {
-                 localStorage.setItem('authToken', result.data.token); // Lưu token
+                 localStorage.setItem('authToken', result.data.token);
                  console.log("Token saved to localStorage");
             } else {
                  console.error("Login response missing token!");
-                 // Có thể throw lỗi ở đây nếu token là bắt buộc
                  throw new Error("Authentication token not received from server.");
             }
 
-
             // Gọi hàm login từ Context để cập nhật userInfo state và localStorage
+            // Hàm login trong context sẽ set userInfo, bao gồm cả is_admin
             login(result.data.user);
 
-            // *** JWT Change: Chuyển hướng về trang chủ sau khi login thành công ***
-            navigate('/');
+            // *** FIX: Chuyển hướng dựa trên vai trò admin và state 'from' ***
+            const isAdmin = result.data.user?.is_admin; // Lấy is_admin từ kết quả API
+            const from = location.state?.from?.pathname || (isAdmin ? "/admin/dashboard" : "/");
+            // Ưu tiên state 'from' (nếu người dùng bị redirect từ trang admin về login)
+            // Nếu không có 'from', admin thì vào dashboard, user thường thì về trang chủ
+
+            console.log("Redirecting after login. Is Admin:", isAdmin, "Redirecting to:", from);
+            navigate(from, { replace: true }); // Dùng replace để không lưu trang login vào history
 
 
         } catch (err) {
             console.error('Lỗi đăng nhập:', err);
             setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
-             // *** JWT Change: Xóa token nếu đăng nhập lỗi (đề phòng trường hợp token cũ còn sót lại) ***
              localStorage.removeItem('authToken');
-             localStorage.removeItem('userInfo');
+             localStorage.removeItem('userInfo'); // Đảm bảo xóa cả userInfo nếu login lỗi
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        // --- Phần JSX của form giữ nguyên ---
         <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4 py-12">
            <div className="max-w-md w-full space-y-8 bg-gray-800 p-8 rounded-lg shadow-lg">
              <div>
@@ -116,7 +119,6 @@ function LoginPage() {
                    />
                  </div>
                </div>
-               {/* ... Các phần khác của form ... */}
                <div>
                  <button type="submit" disabled={loading} className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                    {loading ? 'Đang đăng nhập...' : 'Đăng Nhập'}

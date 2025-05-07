@@ -4,21 +4,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { FaShoppingCart, FaCheckCircle, FaStar, FaRegStar, FaSpinner, FaEdit, FaTrashAlt, FaTimes, FaSave } from 'react-icons/fa';
-
-// Hàm định dạng tiền tệ
-const formatCurrency = (amount) => {
-    const numericAmount = Number(amount);
-    if (amount === null || amount === undefined || isNaN(numericAmount)) {
-        return 'Liên hệ';
-    }
-    try {
-        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(numericAmount);
-    } catch (error) {
-        console.error("Error formatting currency:", error, "Amount:", amount);
-        return 'Lỗi giá';
-    }
-};
+import { FaShoppingCart, FaCheckCircle, FaStar, FaRegStar, FaSpinner, FaEdit, FaTrashAlt, FaTimes, FaSave, FaShieldAlt, FaUndo, FaShippingFast, FaCommentDots, FaPaperPlane } from 'react-icons/fa'; // Thêm icons
+import { formatCurrencyVND, USD_TO_VND_RATE } from '../../utils/currency';
 
 // Component hiển thị sao
 const StarRating = ({ rating, size = 'text-lg', interactive = false, onRate = () => {}, hoverRating = 0, onHover = () => {} }) => {
@@ -56,9 +43,15 @@ const ReviewItem = ({ review, currentUserId, onEdit, onDelete, isEditing, editDa
     const userName = review.user?.username || 'Người dùng ẩn danh';
     const userAvatar = review.user?.imageurl || '/avt.png';
     const reviewDate = review.created_at ? new Date(review.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
+
+    // *** DEBUG: Ensure user IDs are compared as numbers AND check if currentUserId is valid ***
     const isOwner = currentUserId !== null && currentUserId !== undefined &&
                     review.user_id !== undefined &&
                     Number(review.user_id) === Number(currentUserId);
+
+    // *** DEBUG: Log values used for ownership check ***
+    // console.log(`ReviewItem (ID: ${review.review_id}): currentUserId=${currentUserId} (Type: ${typeof currentUserId}), review.user_id=${review.user_id} (Type: ${typeof review.user_id}), isOwner=${isOwner}`);
+
 
     return (
         <div className="py-4 border-b border-gray-700 last:border-b-0">
@@ -123,7 +116,7 @@ const ReviewItem = ({ review, currentUserId, onEdit, onDelete, isEditing, editDa
 function ProductDetail() {
     const { productId } = useParams();
     const { addToCart } = useCart();
-    const { userInfo, logout } = useAuth();
+    const { userInfo, logout } = useAuth(); // userInfo might be initially null
     const navigate = useNavigate();
 
     // States...
@@ -136,7 +129,7 @@ function ProductDetail() {
     const [reviews, setReviews] = useState([]);
     const [loadingReviews, setLoadingReviews] = useState(true);
     const [reviewsError, setReviewsError] = useState(null);
-    const [averageRating, setAverageRating] = useState(0);
+    const [averageRating, setAverageRating] = useState(0); // State riêng cho điểm TB hiển thị
     const [reviewPagination, setReviewPagination] = useState(null);
     const [newRating, setNewRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
@@ -151,16 +144,17 @@ function ProductDetail() {
     const [deleteLoading, setDeleteLoading] = useState(null);
     const [deleteError, setDeleteError] = useState('');
 
-    // --- Tính toán lại điểm trung bình ---
+    // --- Tính toán lại điểm trung bình (chỉ cập nhật state averageRating) ---
     const recalculateAverageRating = useCallback((updatedReviews) => {
         if (!updatedReviews || updatedReviews.length === 0) {
-            setAverageRating(0);
+            setAverageRating(0); // Chỉ cập nhật state này
             return;
         }
         const totalRating = updatedReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
         const newAvg = totalRating / updatedReviews.length;
         const roundedAvg = parseFloat(newAvg.toFixed(1));
-        setAverageRating(roundedAvg);
+        setAverageRating(roundedAvg); // Chỉ cập nhật state này
+        // Không cập nhật product state ở đây nữa
         setReviewPagination(prev => prev ? {...prev, total_items: updatedReviews.length} : { total_items: updatedReviews.length });
     }, []); // Dependency rỗng
 
@@ -178,8 +172,8 @@ function ProductDetail() {
         setLoadingProduct(true);
         setProductError(null);
         setCurrentPrice(null);
-        setProduct(null);
-        setAverageRating(0);
+        setProduct(null); // *** FIX: Reset product state khi bắt đầu fetch ***
+        setAverageRating(0); // Reset average rating
         try {
             const response = await fetch(`http://localhost/Project_WebProgrammingCO3050/backend/api/product/${productId}`);
             console.log("Product API Response Status:", response.status);
@@ -193,11 +187,12 @@ function ProductDetail() {
             const data = await response.json();
              console.log("Product API Response Data:", data);
             if (data.success && data.data) {
+                // *** FIX: Log data before setting state ***
                 console.log("Setting product state with:", data.data);
-                setProduct(data.data);
+                setProduct(data.data); // Set product state
                 setCurrentPrice(data.data.price ?? null);
                 const avgRating = parseFloat(data.data.rated_stars);
-                setAverageRating(isNaN(avgRating) ? 0 : avgRating);
+                setAverageRating(isNaN(avgRating) ? 0 : avgRating); // Set initial average rating from product data
             } else {
                  console.error("API success=false or missing data:", data);
                 throw new Error(data.message || 'API trả về success:false hoặc không có dữ liệu sản phẩm.');
@@ -205,7 +200,7 @@ function ProductDetail() {
         } catch (err) {
             console.error("Lỗi fetch chi tiết sản phẩm:", err);
             setProductError(err.message);
-            setProduct(null);
+            setProduct(null); // Ensure product is null on error
         } finally {
             setLoadingProduct(false);
         }
@@ -248,13 +243,17 @@ function ProductDetail() {
 
     // Initial data fetching
     useEffect(() => {
+        // *** FIX: Fetch product details first, then reviews ***
+        // This ensures product state is set before reviews might try to use it indirectly
         fetchProductDetails().then(() => {
+             // Fetch reviews only after product details are attempted
+             // (even if product fetch failed, we might still want to show reviews)
              fetchReviews();
         });
-    }, [fetchProductDetails, fetchReviews]);
+    }, [fetchProductDetails, fetchReviews]); // Keep dependencies
 
 
-    // *** ADD TO CART: Cập nhật hàm này ***
+    // handleAddToCart
     const handleAddToCart = (event) => {
         console.log("handleAddToCart handler called");
         // event.stopPropagation(); // Thường không cần thiết trừ khi có vấn đề bubbling
@@ -499,7 +498,9 @@ function ProductDetail() {
 
                      {/* Cột phải - Giá, tùy chọn, nút mua */}
                      <div className="md:col-span-3 bg-gray-800 p-6 rounded-lg shadow-md">
-                         {currentPrice !== null ? ( <h2 className="text-3xl font-bold text-red-500 mb-3">{formatCurrency(currentPrice)}</h2> ) : ( <div className="h-[40px] mb-3 bg-gray-700 rounded animate-pulse"></div> )}
+                     {currentPrice !== null ? (
+    <h2 className="text-3xl font-bold text-red-500 mb-3">{formatCurrencyVND(currentPrice)}</h2>
+) : ( <div className="h-[40px] mb-3 bg-gray-700 rounded animate-pulse"></div> )}
                          {/* Chọn số lượng */}
                          <div className="mb-5 flex items-center gap-3">
                              <label htmlFor="quantity" className="block text-sm font-medium text-gray-300">Số lượng:</label>
@@ -518,12 +519,21 @@ function ProductDetail() {
                              </button>
                              <button className="flex-1 bg-red-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-red-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-gray-800"> Mua ngay </button>
                          </div>
-                         {/* Thông tin BH */}
-                         <div className="mt-6 text-xs text-gray-400 space-y-1 border-t border-gray-700 pt-4">
-                              <p>✓ Bảo hành chính hãng {product.warranty_period || 12} tháng.</p>
-                              <p>✓ Hỗ trợ đổi trả trong 7 ngày nếu có lỗi nhà sản xuất.</p>
-                              <p>✓ Giao hàng nhanh toàn quốc.</p>
-                          </div>
+                         {/* Thông tin bảo hành từ database */}
+                         <div className="mt-6 text-xs text-gray-400 space-y-2 border-t border-gray-700 pt-4">
+                            <div className="flex items-center">
+                                <FaShieldAlt className="mr-2 text-green-500"/>
+                                <span>Bảo hành chính hãng: {product.warranty_period ? `${product.warranty_period} tháng` : 'Không xác định'}.</span>
+                            </div>
+                            <div className="flex items-start">
+                                <FaUndo className="mr-2 mt-0.5 text-blue-500 flex-shrink-0"/>
+                                <span>Chính sách đổi trả: {product.warranty_policy || 'Xem chi tiết tại trang chính sách.'}</span>
+                            </div>
+                            <div className="flex items-center">
+                                <FaShippingFast className="mr-2 text-orange-500"/>
+                                <span>Giao hàng nhanh toàn quốc.</span>
+                            </div>
+                         </div>
                      </div>
                 </div>
 

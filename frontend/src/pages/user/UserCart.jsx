@@ -1,19 +1,15 @@
-// src/pages/user/UserCart.jsx
+// File: frontend/src/pages/user/UserCart.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../../context/CartContext'; // Import useCart
-import { useAuth } from '../../context/AuthContext'; // Import useAuth để lấy thông tin user khi checkout
-import { FaTrashAlt, FaShoppingBag, FaSpinner } from 'react-icons/fa'; // Icons
+import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
+import { FaTrashAlt, FaShoppingBag, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { formatCurrencyVND, USD_TO_VND_RATE } from '../../utils/currency';
 
-// Hàm định dạng tiền tệ
-const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return amount;
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-};
 
 function UserCart() {
     const { cartItems, updateQuantity, removeFromCart, clearCart, cartTotal, cartItemCount } = useCart();
-    const { userInfo } = useAuth(); // Lấy thông tin người dùng hiện tại
+    const { userInfo, logout } = useAuth(); // Lấy logout để xử lý token hết hạn
     const navigate = useNavigate();
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [checkoutError, setCheckoutError] = useState('');
@@ -24,71 +20,94 @@ function UserCart() {
         if (!isNaN(quantity) && quantity >= 1) {
             updateQuantity(productId, quantity);
         } else if (newQuantity === '') {
-             // Cho phép xóa input nhưng không cập nhật nếu rỗng
+             // Allow clearing the input, but don't update if empty
         } else {
-            updateQuantity(productId, 1); // Đặt lại là 1 nếu nhập không hợp lệ
+            updateQuantity(productId, 1); // Reset to 1 if invalid input
         }
     };
 
+    // *** CHECKOUT: Cập nhật hàm này ***
     const handleCheckout = async () => {
         setCheckoutLoading(true);
         setCheckoutError('');
         setCheckoutSuccess('');
 
-        if (!userInfo) {
+        // 1. Kiểm tra đăng nhập (qua token)
+        const token = localStorage.getItem('authToken');
+        if (!token) {
             setCheckoutError('Vui lòng đăng nhập để tiến hành thanh toán.');
             setCheckoutLoading(false);
-            // Có thể điều hướng đến trang đăng nhập
-            // navigate('/login?redirect=/cart');
+            navigate('/login?redirect=/cart'); // Chuyển hướng về login
             return;
         }
 
-        if (cartItems.length === 0) {
+        // 2. Kiểm tra giỏ hàng có trống không
+        if (!cartItems || cartItems.length === 0) {
              setCheckoutError('Giỏ hàng của bạn đang trống.');
              setCheckoutLoading(false);
              return;
          }
 
-        // Chuẩn bị dữ liệu gửi lên API /api/order
+        // 3. Chuẩn bị dữ liệu đơn hàng
+        // Lấy thông tin user từ context để điền địa chỉ mặc định
+        const defaultShippingAddress = userInfo?.address || '';
+        const paymentMethod = 'cod'; // Mặc định COD hoặc lấy từ form nếu có
+
         const orderData = {
-            user_id: userInfo.user_id,
-            // Lấy địa chỉ từ user profile hoặc yêu cầu nhập mới
-            shipping_address: userInfo.address || 'Vui lòng cập nhật địa chỉ',
-            // Chọn phương thức thanh toán (ở đây ví dụ là 'credit_card')
-            payment_method: 'credit_card',
-            // Danh sách các sản phẩm trong đơn hàng
+            // user_id sẽ được lấy từ token ở backend
+            shipping_address: defaultShippingAddress, // Cần có form để người dùng nhập/xác nhận
+            payment_method: paymentMethod, // Cần có lựa chọn phương thức
             order_items: cartItems.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
-                // Không cần gửi giá ở đây, backend sẽ tự tính lại dựa trên product_id
+                // Không cần gửi giá, backend sẽ tự lấy và tính toán
             })),
         };
 
-        try {
+         // 4. Gọi API tạo đơn hàng
+         console.log("Submitting order data:", orderData); // DEBUG
+         try {
             const response = await fetch('http://localhost/Project_WebProgrammingCO3050/backend/api/order', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Thêm Authorization nếu API yêu cầu
+                    'Authorization': `Bearer ${token}` // Gửi token
                 },
                 body: JSON.stringify(orderData),
             });
 
             const result = await response.json();
+            console.log("Checkout API Response:", response.status, result); // DEBUG
 
             if (!response.ok || !result.success) {
-                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                 // Xử lý lỗi cụ thể từ backend
+                 if (response.status === 401) {
+                     setCheckoutError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                     logout(); // Logout user
+                     navigate('/login');
+                 } else if (response.status === 409) { // Lỗi hết hàng (Conflict)
+                     setCheckoutError(`Lỗi đặt hàng: ${result.message}`); // Hiển thị lỗi hết hàng
+                 } else if (response.status === 400) { // Lỗi dữ liệu không hợp lệ
+                     setCheckoutError(`Lỗi dữ liệu: ${result.message}`);
+                 }
+                 else {
+                     throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                 }
+                 return; // Dừng lại nếu có lỗi
             }
 
             // --- Thanh toán (Tạo đơn hàng) thành công ---
             setCheckoutSuccess(`Đặt hàng thành công! Mã đơn hàng của bạn là: ${result.data.order_id}.`);
             clearCart(); // Xóa giỏ hàng sau khi đặt hàng thành công
-            // Có thể chuyển hướng đến trang cảm ơn hoặc chi tiết đơn hàng
-            // setTimeout(() => navigate(`/order/${result.data.order_id}`), 3000);
+            // Tùy chọn: Chuyển hướng đến trang cảm ơn hoặc chi tiết đơn hàng
+            // setTimeout(() => navigate(`/order/success/${result.data.order_id}`), 3000);
 
         } catch (err) {
             console.error('Lỗi đặt hàng:', err);
-            setCheckoutError(err.message || 'Đã có lỗi xảy ra khi đặt hàng.');
+            // Hiển thị lỗi chung nếu các lỗi cụ thể chưa được xử lý
+            if (!checkoutError) {
+                setCheckoutError(err.message || 'Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.');
+            }
         } finally {
             setCheckoutLoading(false);
         }
@@ -100,10 +119,22 @@ function UserCart() {
             <div className="container mx-auto px-4">
                 <h1 className="text-3xl font-bold mb-6 text-center">Giỏ Hàng Của Bạn</h1>
 
-                {checkoutError && <p className="mb-4 text-center text-red-400 bg-red-900/50 p-3 rounded">{checkoutError}</p>}
-                {checkoutSuccess && <p className="mb-4 text-center text-green-400 bg-green-900/50 p-3 rounded">{checkoutSuccess}</p>}
+                {/* Hiển thị lỗi hoặc thành công */}
+                {checkoutError && (
+                    <div className="mb-4 text-center text-red-400 bg-red-900/50 p-3 rounded border border-red-700 flex items-center justify-center gap-2">
+                         <FaExclamationTriangle /> {checkoutError}
+                    </div>
+                )}
+                 {checkoutSuccess && (
+                    <div className="mb-4 text-center text-green-400 bg-green-900/50 p-3 rounded border border-green-700">
+                        <p>{checkoutSuccess}</p>
+                        <Link to="/" className="text-blue-400 hover:underline mt-2 inline-block">Tiếp tục mua sắm</Link>
+                    </div>
+                 )}
 
-                {cartItems.length === 0 && !checkoutSuccess ? (
+
+                {/* Kiểm tra giỏ hàng trống */}
+                {(!cartItems || cartItems.length === 0) && !checkoutSuccess ? (
                     <div className="text-center py-10 bg-gray-800 rounded-lg shadow">
                         <FaShoppingBag className="text-6xl text-gray-500 mx-auto mb-4" />
                         <p className="text-gray-400 mb-4">Giỏ hàng của bạn đang trống.</p>
@@ -111,7 +142,7 @@ function UserCart() {
                             Tiếp tục mua sắm
                         </Link>
                     </div>
-                ) : !checkoutSuccess && (
+                ) : !checkoutSuccess && ( // Chỉ hiển thị giỏ hàng nếu chưa checkout thành công
                     <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                         {/* Header của bảng giỏ hàng */}
                         <div className="hidden md:grid grid-cols-6 gap-4 px-6 py-3 border-b border-gray-700 font-semibold text-sm text-gray-400">
@@ -126,7 +157,7 @@ function UserCart() {
                         <div className="divide-y divide-gray-700">
                             {cartItems.map(item => (
                                 <div key={item.product_id} className="grid grid-cols-6 gap-4 items-center px-4 py-4 md:px-6">
-                                    {/* Thông tin sản phẩm (Mobile + Desktop) */}
+                                    {/* Thông tin sản phẩm */}
                                     <div className="col-span-6 md:col-span-2 flex items-center gap-3">
                                         <img
                                             src={item.imageurl || '/placeholder-image.png'}
@@ -138,18 +169,14 @@ function UserCart() {
                                             <Link to={`/product/${item.product_id}`} className="font-semibold text-sm hover:text-blue-400 line-clamp-2">
                                                 {item.name}
                                             </Link>
-                                            {/* Hiển thị thêm lựa chọn (màu, size...) nếu có */}
-                                            {/* <p className="text-xs text-gray-400">Màu: {item.color}</p> */}
                                         </div>
                                     </div>
-
-                                    {/* Đơn giá (Mobile + Desktop) */}
+                                    {/* Đơn giá */}
                                     <div className="col-span-2 md:col-span-1 text-left md:text-center text-sm">
                                         <span className="md:hidden font-semibold text-gray-400 mr-2">Đơn giá: </span>
-                                        {formatCurrency(item.price)}
+                                        {formatCurrencyVND(item.price)}
                                     </div>
-
-                                    {/* Số lượng (Mobile + Desktop) */}
+                                    {/* Số lượng */}
                                     <div className="col-span-2 md:col-span-1 text-left md:text-center">
                                         <span className="md:hidden font-semibold text-gray-400 mr-2">SL: </span>
                                         <div className="inline-flex items-center border border-gray-600 rounded">
@@ -173,14 +200,12 @@ function UserCart() {
                                             >+</button>
                                         </div>
                                     </div>
-
-                                    {/* Thành tiền (Mobile + Desktop) */}
+                                    {/* Thành tiền */}
                                     <div className="col-span-1 md:col-span-1 text-right text-sm font-semibold">
                                          <span className="md:hidden font-semibold text-gray-400 mr-2">Tổng: </span>
-                                        {formatCurrency(item.price * item.quantity)}
+                                         {formatCurrencyVND(item.price * item.quantity)}
                                     </div>
-
-                                    {/* Nút xóa (Mobile + Desktop) */}
+                                    {/* Nút xóa */}
                                     <div className="col-span-1 md:col-span-1 text-right">
                                         <button
                                             onClick={() => removeFromCart(item.product_id)}
@@ -207,8 +232,9 @@ function UserCart() {
                             <div className="text-right">
                                 <p className="text-lg font-semibold mb-2">
                                     Tổng cộng ({cartItemCount} sản phẩm):
-                                    <span className="text-xl text-red-500 ml-2">{formatCurrency(cartTotal)}</span>
+                                    <span className="text-xl text-red-500 ml-2">{formatCurrencyVND(cartTotal)}</span>
                                 </p>
+                                {/* *** CHECKOUT: Nút này gọi handleCheckout *** */}
                                 <button
                                     onClick={handleCheckout}
                                     disabled={checkoutLoading}
